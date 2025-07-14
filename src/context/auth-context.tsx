@@ -41,6 +41,7 @@ const safeJSONParse = (item: string | null) => {
 }
 
 const PUBLIC_ROUTES = ['/'];
+const ONBOARDING_ROUTES = ['/change-password', '/set-specialty', '/onboarding/create-clinic', '/onboarding/create-staff'];
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -77,18 +78,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (isLoading) return;
 
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
-    const isChangingPassword = pathname === '/change-password';
+    const isOnboardingRoute = ONBOARDING_ROUTES.includes(pathname);
 
     if (user) {
-        if(user.reset_initial_password && !isChangingPassword) {
+        // 1. Highest priority: Force password change if needed.
+        if (user.reset_initial_password && pathname !== '/change-password') {
             router.replace('/change-password');
             return;
         }
 
+        // 2. Second priority: Force specialty set for doctors if needed.
+        if (!user.reset_initial_password && user.role === 'doctor' && !user.specialty_set && pathname !== '/set-specialty') {
+            router.replace('/set-specialty');
+            return;
+        }
+
+        // 3. If logged in and on a public page, redirect to dashboard.
         if (isPublicRoute) {
             router.replace('/dashboard');
         }
     } else {
+      // 4. If not logged in and not on a public page, redirect to login.
       if (!isPublicRoute) {
         router.replace('/');
       }
@@ -125,17 +135,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             role: userData.role,
             avatarUrl: `https://placehold.co/32x32.png`,
             reset_initial_password: userData.reset_initial_password,
-            specialty_set: false, // Default onboarding flags
+            specialty_set: userData.specialty_set || false,
             clinic_created: false,
             staff_created: false,
         };
         updateUserState(currentUser, token);
         
-        if (currentUser.reset_initial_password) {
-            router.push('/change-password');
-        } else {
-            router.push('/dashboard');
-        }
+        // Let the useEffect handle the redirection based on the new user state
     } else {
         throw new Error("Login response did not contain user data or token.");
     }
@@ -150,17 +156,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return authToken;
   }
   
-  const protectedRoutes = !PUBLIC_ROUTES.includes(pathname);
+  const protectedRoutes = !PUBLIC_ROUTES.includes(pathname) && !ONBOARDING_ROUTES.includes(pathname);
 
   if (isLoading || (protectedRoutes && !user)) {
-     const isPasswordPage = pathname === '/change-password';
-     if (isLoading || (protectedRoutes && !user && !isPasswordPage)) {
-        return (
-            <div className="flex h-screen items-center justify-center">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-        );
-     }
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    );
   }
 
   return (
