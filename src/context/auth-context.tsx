@@ -77,11 +77,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (isLoading) return;
 
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
-    
+    const isChangingPassword = pathname === '/change-password';
+
     if (user) {
-      if (isPublicRoute) {
-         router.replace('/dashboard');
-      }
+        if(user.reset_initial_password && !isChangingPassword) {
+            router.replace('/change-password');
+            return;
+        }
+
+        if (isPublicRoute) {
+            router.replace('/dashboard');
+        }
     } else {
       if (!isPublicRoute) {
         router.replace('/');
@@ -119,18 +125,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             role: userData.role,
             avatarUrl: `https://placehold.co/32x32.png`,
             reset_initial_password: userData.reset_initial_password,
+            specialty_set: false, // Default onboarding flags
+            clinic_created: false,
+            staff_created: false,
         };
         updateUserState(currentUser, token);
-        router.push('/dashboard');
+        
+        if (currentUser.reset_initial_password) {
+            router.push('/change-password');
+        } else {
+            router.push('/dashboard');
+        }
     } else {
         throw new Error("Login response did not contain user data or token.");
     }
   };
 
   const logout = () => {
-    // Navigate away first to prevent a flash of an empty dashboard
     router.push('/');
-    // Then clear the state
     updateUserState(null, null);
   };
 
@@ -138,14 +150,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return authToken;
   }
   
-  const isProtectedRoute = !PUBLIC_ROUTES.includes(pathname);
+  const protectedRoutes = !PUBLIC_ROUTES.includes(pathname);
 
-  if (isLoading || (isProtectedRoute && !user)) {
-    return (
-        <div className="flex h-screen items-center justify-center">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-    );
+  if (isLoading || (protectedRoutes && !user)) {
+     const isPasswordPage = pathname === '/change-password';
+     if (isLoading || (protectedRoutes && !user && !isPasswordPage)) {
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+        );
+     }
   }
 
   return (
