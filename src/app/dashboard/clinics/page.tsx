@@ -305,19 +305,19 @@ function ClinicsPage() {
                 <CardDescription>Manage your clinic locations and their details.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pb-4">
+                <div className="flex items-center justify-between pb-4">
                     <Input
                         placeholder="Search clinics..."
                         value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
                         onChange={(event) =>
                             table.getColumn("name")?.setFilterValue(event.target.value)
                         }
-                        className="w-full sm:max-w-sm"
+                        className="max-w-sm"
                     />
                     {user?.role === 'doctor' && (
                         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                             <DialogTrigger asChild>
-                                <Button className="w-full sm:w-auto">
+                                <Button>
                                     <PlusCircle className="mr-2 h-4 w-4" /> Add Clinic
                                 </Button>
                             </DialogTrigger>
@@ -328,64 +328,64 @@ function ClinicsPage() {
                     )}
                 </div>
                 <div className="rounded-md border">
-                    <div className="overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                {table.getHeaderGroups().map((headerGroup) => (
-                                    <TableRow key={headerGroup.id}>
-                                        {headerGroup.headers.map((header) => {
-                                            return (
-                                                <TableHead key={header.id}>
-                                                    {header.isPlaceholder
-                                                        ? null
-                                                        : flexRender(
-                                                            header.column.columnDef.header,
-                                                            header.getContext()
-                                                        )}
-                                                </TableHead>
-                                            )
-                                        })}
-                                    </TableRow>
-                                ))}
-                            </TableHeader>
-                            <TableBody>
-                                {isLoading ? (
-                                    <TableRow>
-                                        <TableCell colSpan={columns.length} className="h-24 text-center">
-                                            <div className="flex justify-center items-center">
-                                              <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
-                                              <span>Loading clinics...</span>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ) : table.getRowModel().rows?.length ? (
-                                    table.getRowModel().rows.map((row) => (
-                                        <TableRow
-                                            key={row.id}
-                                            data-state={row.getIsSelected() && "selected"}
-                                        >
-                                            {row.getVisibleCells().map((cell) => (
-                                                <TableCell key={cell.id}>
-                                                    {flexRender(
-                                                        cell.column.columnDef.cell,
-                                                        cell.getContext()
+                    <Table>
+                        <TableHeader>
+                            {table.getHeaderGroups().map((headerGroup) => (
+                                <TableRow key={headerGroup.id}>
+                                    {headerGroup.headers.map((header) => {
+                                        return (
+                                            <TableHead key={header.id}>
+                                                {header.isPlaceholder
+                                                    ? null
+                                                    : flexRender(
+                                                        header.column.columnDef.header,
+                                                        header.getContext()
                                                     )}
-                                                </TableCell>
-                                            ))}
-                                        </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={columns.length} className="h-24 text-center">
-                                            No results.
-                                        </TableCell>
+                                            </TableHead>
+                                        )
+                                    })}
+                                </TableRow>
+                            ))}
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                                        <div className="flex justify-center items-center">
+                                          <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
+                                          <span>Loading clinics...</span>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ) : table.getRowModel().rows?.length ? (
+                                table.getRowModel().rows.map((row) => (
+                                    <TableRow
+                                        key={row.id}
+                                        data-state={row.getIsSelected() && "selected"}
+                                    >
+                                        {row.getVisibleCells().map((cell) => (
+                                            <TableCell key={cell.id}>
+                                                {flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext()
+                                                )}
+                                            </TableCell>
+                                        ))}
                                     </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                                        No results.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
                 </div>
-                <DataTablePagination table={table} className="mt-4" />
+                <div className="py-4">
+                    <DataTablePagination table={table} />
+                </div>
             </CardContent>
         </Card>
     )

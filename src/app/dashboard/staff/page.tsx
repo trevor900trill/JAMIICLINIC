@@ -212,7 +212,7 @@ function AddUserForm({ onFinished }: { onFinished: () => void }) {
                         Fill in the details below to add a new user to the system.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+                <div className="grid grid-cols-2 gap-4 py-4">
                     <FormField control={form.control} name="first_name" render={({ field }) => (
                         <FormItem><FormLabel>First Name</FormLabel><FormControl><Input placeholder="John" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
@@ -220,7 +220,7 @@ function AddUserForm({ onFinished }: { onFinished: () => void }) {
                         <FormItem><FormLabel>Last Name</FormLabel><FormControl><Input placeholder="Doe" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="email" render={({ field }) => (
-                        <FormItem className="md:col-span-2"><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="john@example.com" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem className="col-span-2"><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="john@example.com" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="telephone" render={({ field }) => (
                         <FormItem><FormLabel>Telephone</FormLabel><FormControl><Input placeholder="+254..." {...field} /></FormControl><FormMessage /></FormItem>
@@ -303,19 +303,19 @@ function UsersPage() {
                 <CardDescription>Manage all staff accounts in the system.</CardDescription>
             </CardHeader>
             <CardContent>
-                 <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pb-4">
+                 <div className="flex items-center justify-between pb-4">
                     <Input
                         placeholder="Search staff by name..."
                         value={(table.getColumn("first_name")?.getFilterValue() as string) ?? ""}
                         onChange={(event) =>
                             table.getColumn("first_name")?.setFilterValue(event.target.value)
                         }
-                        className="w-full sm:max-w-sm"
+                        className="max-w-sm"
                     />
                     {user?.role === 'doctor' && (
                         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                             <DialogTrigger asChild>
-                                <Button className="w-full sm:w-auto">
+                                <Button>
                                     <PlusCircle className="mr-2 h-4 w-4" /> Add Staff
                                 </Button>
                             </DialogTrigger>
@@ -326,64 +326,64 @@ function UsersPage() {
                     )}
                 </div>
                 <div className="rounded-md border">
-                    <div className="overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                {table.getHeaderGroups().map((headerGroup) => (
-                                    <TableRow key={headerGroup.id}>
-                                        {headerGroup.headers.map((header) => {
-                                            return (
-                                                <TableHead key={header.id}>
-                                                    {header.isPlaceholder
-                                                        ? null
-                                                        : flexRender(
-                                                            header.column.columnDef.header,
-                                                            header.getContext()
-                                                        )}
-                                                </TableHead>
-                                            )
-                                        })}
-                                    </TableRow>
-                                ))}
-                            </TableHeader>
-                            <TableBody>
-                                {isLoading ? (
-                                    <TableRow>
-                                        <TableCell colSpan={columns.length} className="h-24 text-center">
-                                           <div className="flex justify-center items-center">
-                                              <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
-                                              <span>Loading staff...</span>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ) : table.getRowModel().rows?.length ? (
-                                    table.getRowModel().rows.map((row) => (
-                                        <TableRow
-                                            key={row.original.staff_id}
-                                            data-state={row.getIsSelected() && "selected"}
-                                        >
-                                            {row.getVisibleCells().map((cell) => (
-                                                <TableCell key={cell.id}>
-                                                    {flexRender(
-                                                        cell.column.columnDef.cell,
-                                                        cell.getContext()
+                    <Table>
+                        <TableHeader>
+                            {table.getHeaderGroups().map((headerGroup) => (
+                                <TableRow key={headerGroup.id}>
+                                    {headerGroup.headers.map((header) => {
+                                        return (
+                                            <TableHead key={header.id}>
+                                                {header.isPlaceholder
+                                                    ? null
+                                                    : flexRender(
+                                                        header.column.columnDef.header,
+                                                        header.getContext()
                                                     )}
-                                                </TableCell>
-                                            ))}
-                                        </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={columns.length} className="h-24 text-center">
-                                            No results.
-                                        </TableCell>
+                                            </TableHead>
+                                        )
+                                    })}
+                                </TableRow>
+                            ))}
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                                       <div className="flex justify-center items-center">
+                                          <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
+                                          <span>Loading staff...</span>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ) : table.getRowModel().rows?.length ? (
+                                table.getRowModel().rows.map((row) => (
+                                    <TableRow
+                                        key={row.original.staff_id}
+                                        data-state={row.getIsSelected() && "selected"}
+                                    >
+                                        {row.getVisibleCells().map((cell) => (
+                                            <TableCell key={cell.id}>
+                                                {flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext()
+                                                )}
+                                            </TableCell>
+                                        ))}
                                     </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                                        No results.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
                 </div>
-                <DataTablePagination table={table} className="mt-4" />
+                <div className="py-4">
+                    <DataTablePagination table={table} />
+                </div>
             </CardContent>
         </Card>
     )

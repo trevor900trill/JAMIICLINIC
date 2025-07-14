@@ -134,7 +134,7 @@ function AddPatientForm({ onFinished }: { onFinished: () => void }) {
             <DialogTitle>Create New Patient</DialogTitle>
             <DialogDescription>Add a new patient record to the system. All fields are required.</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+          <div className="grid grid-cols-2 gap-4 py-4">
             <FormField control={form.control} name="first_name" render={({ field }) => (
               <FormItem>
                 <FormLabel>First Name</FormLabel>
@@ -150,7 +150,7 @@ function AddPatientForm({ onFinished }: { onFinished: () => void }) {
               </FormItem>
             )} />
             <FormField control={form.control} name="email" render={({ field }) => (
-              <FormItem className="md:col-span-2">
+              <FormItem className="col-span-2">
                 <FormLabel>Email Address</FormLabel>
                 <FormControl><Input type="email" placeholder="john.doe@example.com" {...field} /></FormControl>
                 <FormMessage />
@@ -335,18 +335,18 @@ function PatientsPage() {
                 <CardDescription>View and manage patient records.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pb-4">
+                <div className="flex items-center justify-between pb-4">
                     <Input
                         placeholder="Search by patient name..."
                         value={(table.getColumn("first_name")?.getFilterValue() as string) ?? ""}
                         onChange={(event) =>
                             table.getColumn("first_name")?.setFilterValue(event.target.value)
                         }
-                        className="w-full sm:max-w-sm"
+                        className="max-w-sm"
                     />
                     <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                         <DialogTrigger asChild>
-                           <Button className="w-full sm:w-auto">
+                           <Button>
                                 <PlusCircle className="mr-2 h-4 w-4" /> Add Patient
                             </Button>
                         </DialogTrigger>
@@ -356,62 +356,62 @@ function PatientsPage() {
                     </Dialog>
                 </div>
                 <div className="rounded-md border">
-                    <div className="overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                {table.getHeaderGroups().map((headerGroup) => (
-                                    <TableRow key={headerGroup.id}>
-                                        {headerGroup.headers.map((header) => (
-                                            <TableHead key={header.id}>
-                                                {header.isPlaceholder
-                                                    ? null
-                                                    : flexRender(
-                                                        header.column.columnDef.header,
-                                                        header.getContext()
-                                                    )}
-                                            </TableHead>
+                    <Table>
+                        <TableHeader>
+                            {table.getHeaderGroups().map((headerGroup) => (
+                                <TableRow key={headerGroup.id}>
+                                    {headerGroup.headers.map((header) => (
+                                        <TableHead key={header.id}>
+                                            {header.isPlaceholder
+                                                ? null
+                                                : flexRender(
+                                                    header.column.columnDef.header,
+                                                    header.getContext()
+                                                )}
+                                        </TableHead>
+                                    ))}
+                                </TableRow>
+                            ))}
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                                       <div className="flex justify-center items-center">
+                                          <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
+                                          <span>Loading patients...</span>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ) : table.getRowModel().rows?.length ? (
+                                table.getRowModel().rows.map((row) => (
+                                    <TableRow
+                                        key={row.original.patient_id}
+                                        data-state={row.getIsSelected() && "selected"}
+                                    >
+                                        {row.getVisibleCells().map((cell) => (
+                                            <TableCell key={cell.id}>
+                                                {flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext()
+                                                )}
+                                            </TableCell>
                                         ))}
                                     </TableRow>
-                                ))}
-                            </TableHeader>
-                            <TableBody>
-                                {isLoading ? (
-                                    <TableRow>
-                                        <TableCell colSpan={columns.length} className="h-24 text-center">
-                                           <div className="flex justify-center items-center">
-                                              <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
-                                              <span>Loading patients...</span>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ) : table.getRowModel().rows?.length ? (
-                                    table.getRowModel().rows.map((row) => (
-                                        <TableRow
-                                            key={row.original.patient_id}
-                                            data-state={row.getIsSelected() && "selected"}
-                                        >
-                                            {row.getVisibleCells().map((cell) => (
-                                                <TableCell key={cell.id}>
-                                                    {flexRender(
-                                                        cell.column.columnDef.cell,
-                                                        cell.getContext()
-                                                    )}
-                                                </TableCell>
-                                            ))}
-                                        </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={columns.length} className="h-24 text-center">
-                                            No patient data available.
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                                        No patient data available.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
                 </div>
-                <DataTablePagination table={table} className="mt-4" />
+                <div className="py-4">
+                    <DataTablePagination table={table} />
+                </div>
             </CardContent>
         </Card>
     )
