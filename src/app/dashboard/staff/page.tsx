@@ -302,7 +302,7 @@ function UsersPage() {
                 <CardTitle>Staff</CardTitle>
                 <CardDescription>Manage all staff accounts in the system.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-x-hidden">
                  <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pb-4">
                     <Input
                         placeholder="Search staff by name..."

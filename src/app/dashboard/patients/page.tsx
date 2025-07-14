@@ -334,7 +334,7 @@ function PatientsPage() {
                 <CardTitle>Patients</CardTitle>
                 <CardDescription>View and manage patient records.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-x-hidden">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pb-4">
                     <Input
                         placeholder="Search by patient name..."
