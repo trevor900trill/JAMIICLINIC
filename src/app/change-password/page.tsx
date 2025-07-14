@@ -47,7 +47,7 @@ export default function ChangePasswordPage() {
     setIsLoading(true)
     try {
         const token = getAuthToken();
-        const response = await fetch(`${API_BASE_URL}/api/change-password/`, {
+        const response = await fetch(`${API_BASE_URL}/api/users/change-password/`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
