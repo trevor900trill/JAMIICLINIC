@@ -70,7 +70,14 @@ export default function CreateStaffPage() {
 
   const form = useForm<StaffFormValues>({
     resolver: zodResolver(staffSchema),
-    defaultValues: { email: "", first_name: "", last_name: "", telephone: "" }
+    defaultValues: { 
+      email: "", 
+      first_name: "", 
+      last_name: "", 
+      telephone: "",
+      position: "",
+      clinic_id: undefined
+    }
   })
 
   const handleSkip = async () => {
@@ -169,7 +176,7 @@ export default function CreateStaffPage() {
                     <FormItem><FormLabel>Telephone</FormLabel><FormControl><Input placeholder="+254..." {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                  <FormField control={form.control} name="gender" render={({ field }) => (
-                    <FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange}><FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                 )} />
                  <FormField control={form.control} name="position" render={({ field }) => (
                     <FormItem><FormLabel>Position</FormLabel><FormControl><Input placeholder="e.g. Nurse" {...field} /></FormControl><FormMessage /></FormItem>
