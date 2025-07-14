@@ -94,7 +94,7 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <div className="flex items-center justify-center h-screen bg-muted/40">
+    <div className="flex items-center justify-center h-full bg-muted/40">
       <Card className="w-full max-w-md">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>

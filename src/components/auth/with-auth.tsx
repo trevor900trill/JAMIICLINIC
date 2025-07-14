@@ -29,8 +29,8 @@ const withAuth = <P extends object>(
       const isOnboardingRoute = [
         '/dashboard/change-password',
         '/dashboard/set-specialty',
-        '/dashboard/onboarding/create-clinic',
-        '/dashboard/onboarding/create-staff'
+        '/onboarding/create-clinic',
+        '/onboarding/create-staff'
       ].includes(pathname);
 
       // --- Onboarding Flow ---
@@ -48,8 +48,8 @@ const withAuth = <P extends object>(
         }
       // 3. Force clinic creation for doctors
       } else if (user.role === 'doctor' && !user.clinic_created) {
-         if (pathname !== '/dashboard/onboarding/create-clinic' && pathname !== '/dashboard/onboarding/create-staff') {
-           router.replace('/dashboard/onboarding/create-clinic');
+         if (pathname !== '/onboarding/create-clinic' && pathname !== '/onboarding/create-staff') {
+           router.replace('/onboarding/create-clinic');
          }
       // 4. Role-based Access Control for non-onboarding routes
       } else if (!isOnboardingRoute && requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
@@ -74,8 +74,8 @@ const withAuth = <P extends object>(
     if (user) {
         const needsPasswordChange = user.reset_initial_password && pathname !== '/dashboard/change-password';
         const needsSpecialty = !user.reset_initial_password && user.role === 'doctor' && !user.specialty_set && pathname !== '/dashboard/set-specialty';
-        const needsClinicCreation = !user.reset_initial_password && user.role === 'doctor' && user.specialty_set && !user.clinic_created && !pathname.startsWith('/dashboard/onboarding');
-        const isOnboardingRoute = ['/dashboard/change-password', '/dashboard/set-specialty', '/dashboard/onboarding/create-clinic', '/dashboard/onboarding/create-staff'].includes(pathname);
+        const needsClinicCreation = !user.reset_initial_password && user.role === 'doctor' && user.specialty_set && !user.clinic_created && !pathname.startsWith('/onboarding');
+        const isOnboardingRoute = ['/dashboard/change-password', '/dashboard/set-specialty', '/onboarding/create-clinic', '/onboarding/create-staff'].includes(pathname);
         const hasCompletedOnboarding = !user.reset_initial_password && (user.role !== 'doctor' || (user.specialty_set && user.clinic_created));
         const wrongRole = !isOnboardingRoute && requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role);
 

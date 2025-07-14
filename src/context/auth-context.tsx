@@ -139,13 +139,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             specialty_set: specialty_set,
             clinic_created: false, // Reset on login
         };
+        // This is the key change: we set the user and then let withAuth handle redirection.
+        // The router.push is removed from here to prevent the race condition.
         setUser(currentUser);
-
-        // The withAuth HOC will handle all redirection logic.
-        // We just need to push to a single entry point after login.
-        router.push('/dashboard');
         
     } else {
+        logout(); // If token is invalid, log out
         throw new Error("Failed to decode token after login.");
     }
   };

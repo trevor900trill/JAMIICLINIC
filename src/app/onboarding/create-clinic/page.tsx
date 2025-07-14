@@ -69,53 +69,51 @@ function OnboardingCreateClinicPage() {
     }
 
     return (
-        <div className="flex items-center justify-center h-screen bg-muted/40">
-            <Card className="w-full max-w-lg">
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)}>
-                        <CardHeader>
-                             <div className="flex justify-center pb-4">
-                                <Building className="h-10 w-10 text-primary" />
-                            </div>
-                            <CardTitle className="text-center">Create Your First Clinic</CardTitle>
-                            <CardDescription className="text-center">
-                                Set up your clinic to start managing patients and staff. You can skip this and do it later.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="grid gap-4 py-4">
-                            <FormField control={form.control} name="name" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Clinic Name</FormLabel>
-                                    <FormControl><Input placeholder="Sunshine Wellness Clinic" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="location" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Location / Address</FormLabel>
-                                    <FormControl><Input placeholder="123 Health St, Nairobi" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="contact_number" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Contact Number</FormLabel>
-                                    <FormControl><Input placeholder="+254700000000" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                        </CardContent>
-                        <CardFooter className="flex justify-between">
-                            <Button variant="outline" type="button" onClick={handleSkip}>Skip For Now</Button>
-                            <Button type="submit" disabled={isLoading}>
-                                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {isLoading ? "Saving..." : "Create Clinic & Continue"}
-                            </Button>
-                        </CardFooter>
-                    </form>
-                </Form>
-            </Card>
-        </div>
+        <Card className="w-full max-w-lg">
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)}>
+                    <CardHeader>
+                            <div className="flex justify-center pb-4">
+                            <Building className="h-10 w-10 text-primary" />
+                        </div>
+                        <CardTitle className="text-center">Create Your First Clinic</CardTitle>
+                        <CardDescription className="text-center">
+                            Set up your clinic to start managing patients and staff. You can skip this and do it later.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-4 py-4">
+                        <FormField control={form.control} name="name" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Clinic Name</FormLabel>
+                                <FormControl><Input placeholder="Sunshine Wellness Clinic" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name="location" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Location / Address</FormLabel>
+                                <FormControl><Input placeholder="123 Health St, Nairobi" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name="contact_number" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Contact Number</FormLabel>
+                                <FormControl><Input placeholder="+254700000000" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                    </CardContent>
+                    <CardFooter className="flex justify-between">
+                        <Button variant="outline" type="button" onClick={handleSkip}>Skip For Now</Button>
+                        <Button type="submit" disabled={isLoading}>
+                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {isLoading ? "Saving..." : "Create Clinic & Continue"}
+                        </Button>
+                    </CardFooter>
+                </form>
+            </Form>
+        </Card>
     )
 }
 

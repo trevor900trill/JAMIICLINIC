@@ -1,19 +1,26 @@
+
 "use client"
 import type { PropsWithChildren } from 'react'
 import { SidebarNav } from '@/components/dashboard/sidebar-nav'
 import { Header } from '@/components/dashboard/header'
 import { useAuth } from '@/context/auth-context'
+import { usePathname } from 'next/navigation'
 
 export default function DashboardLayout({ children }: PropsWithChildren) {
   const { user } = useAuth();
+  const pathname = usePathname();
   
-  const needsOnboarding = user?.reset_initial_password || 
-                          (user?.role === 'doctor' && (!user.specialty_set || !user.clinic_created));
+  const isOnboardingRoute = [
+    '/dashboard/change-password',
+    '/dashboard/set-specialty',
+    '/onboarding/create-clinic',
+    '/onboarding/create-staff'
+  ].includes(pathname);
 
-  if (needsOnboarding) {
+  if (isOnboardingRoute) {
     return (
       <div className="flex min-h-screen w-full flex-col bg-muted/40">
-        <main className="flex flex-1 items-center justify-center">
+        <main className="flex flex-1 items-center justify-center p-4 sm:p-6">
           {children}
         </main>
       </div>
