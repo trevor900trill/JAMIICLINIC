@@ -53,7 +53,10 @@ export default function ChangePasswordPage() {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ new_password: data.new_password }),
+            body: JSON.stringify({ 
+              new_password: data.new_password,
+              confirm_password: data.confirm_password,
+            }),
         })
 
         if (!response.ok) {
@@ -100,7 +103,7 @@ export default function ChangePasswordPage() {
               </div>
               <CardTitle className="text-center">Set Your New Password</CardTitle>
               <CardDescription className="text-center">
-                For security, please create a new password for your account.
+                For security, please create a new password for your account: <span className="font-medium text-foreground">{user.email}</span>.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
