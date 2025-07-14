@@ -60,7 +60,7 @@ export default function DashboardPage() {
         <h1 className="text-3xl font-bold">Good morning, {user?.name}!</h1>
         <p className="text-muted-foreground">Here's a summary of your clinic's activity.</p>
       </div>
-      <div className={`grid gap-4 md:grid-cols-2 lg:grid-cols-${stats.length}`}>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat, index) => (
           <Card key={index}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
