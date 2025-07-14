@@ -16,22 +16,25 @@ import { Home, Users, Building, HeartPulse, PanelLeft, Stethoscope, UserCog } fr
 import React from 'react'
 import { Badge } from '@/components/ui/badge'
 
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: Home },
-  { href: '/dashboard/users', label: 'Users', icon: Users },
-  { href: '/dashboard/clinics', label: 'Clinics', icon: Building },
-  { href: '/dashboard/patients',label: 'Patients', icon: HeartPulse },
-]
-
-// In a real app, you'd get this from auth context
+// In a real app, you'd get this from auth context. 
+// We are hardcoding it here to simulate different user roles.
+// You can change this to 'admin', 'doctor', or 'staff' to see the UI adapt.
 const user = {
     name: "Dr. Wayne Musungu",
-    role: "Doctor"
+    role: "admin", // Can be 'admin', 'doctor', or 'staff'
 }
+
+const allNavItems = [
+  { href: '/dashboard', label: 'Dashboard', icon: Home, roles: ['admin', 'doctor', 'staff'] },
+  { href: '/dashboard/users', label: 'Staff', icon: Users, roles: ['admin', 'doctor'] },
+  { href: '/dashboard/clinics', label: 'Clinics', icon: Building, roles: ['admin', 'doctor'] },
+  { href: '/dashboard/patients',label: 'Patients', icon: HeartPulse, roles: ['admin', 'doctor', 'staff'] },
+]
 
 export function Header() {
   const pathname = usePathname()
   
+  const navItems = allNavItems.filter(item => item.roles.includes(user.role));
   const pageTitle = navItems.find(item => item.href === pathname)?.label ?? 'Dashboard'
 
   return (
@@ -67,7 +70,7 @@ export function Header() {
       </Sheet>
       <div className="flex items-center gap-4">
         <h1 className="text-xl font-semibold hidden md:flex">{pageTitle}</h1>
-        <Badge variant="outline" className="flex items-center gap-2">
+        <Badge variant="outline" className="flex items-center gap-2 capitalize">
             <UserCog className="h-4 w-4" />
             {user.role}
         </Badge>

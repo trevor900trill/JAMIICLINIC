@@ -1,18 +1,33 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, Building, DollarSign, Calendar, Clock, BarChart2 } from 'lucide-react'
+import { Users, Building, DollarSign, Calendar, Clock, BarChart2, User, Stethoscope } from 'lucide-react'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 
-const stats = [
-  { title: "Total Patients", value: "1,254", icon: Users, change: "+15.2% from last month" },
-  { title: "Active Staff", value: "32", icon: Users, change: "+5 from last month" },
-  { title: "Clinics", value: "3", icon: Building, change: "+1 this year" },
-  { title: "Revenue", value: "$45,231.89", icon: DollarSign, change: "+20.1% from last month" },
-]
+// In a real app, you'd get this from auth context. 
+// We are hardcoding it here to simulate different user roles.
+// You can change this to 'admin', 'doctor', or 'staff' to see the dashboard adapt.
+const userRole: 'admin' | 'doctor' | 'staff' = 'admin'; 
+
+const getDashboardStats = (role: 'admin' | 'doctor' | 'staff') => {
+  const baseStats = [
+    { title: "Total Patients", value: "1,254", icon: Users, change: "+15.2% from last month" },
+    { title: "Revenue", value: "$45,231.89", icon: DollarSign, change: "+20.1% from last month" },
+    { title: "Clinics", value: "3", icon: Building, change: "+1 this year" },
+  ];
+
+  if (role === 'admin') {
+    return [{ title: "Total Doctors", value: "2", icon: Stethoscope, change: "+1 this month" }, ...baseStats];
+  }
+  if (role === 'doctor') {
+    return [{ title: "Total Staff", value: "2", icon: User, change: "+2 this month" }, ...baseStats];
+  }
+  return baseStats;
+};
+
 
 const chartData = [
   { month: "January", patients: 186 },
@@ -39,10 +54,12 @@ const recentAppointments = [
 ]
 
 export default function DashboardPage() {
+  const stats = getDashboardStats(userRole);
+  
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">Good morning, Doctor!</h1>
+        <h1 className="text-3xl font-bold">Good morning!</h1>
         <p className="text-muted-foreground">Here's a summary of your clinic's activity.</p>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

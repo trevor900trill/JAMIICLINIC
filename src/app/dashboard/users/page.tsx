@@ -123,7 +123,7 @@ export const columns: ColumnDef<User>[] = [
     {
         accessorKey: "role",
         header: "Role",
-        cell: ({ row }) => <Badge variant="outline">{row.getValue("role")}</Badge>,
+        cell: ({ row }) => <Badge variant="outline" className="capitalize">{row.getValue("role")}</Badge>,
     },
     {
         accessorKey: "status",
@@ -174,7 +174,7 @@ function AddUserForm({ onFinished }: { onFinished: () => void }) {
     return (
          <form onSubmit={handleSubmit}>
             <DialogHeader>
-                <DialogTitle>Add New User</DialogTitle>
+                <DialogTitle>Add New Staff Member</DialogTitle>
                 <DialogDescription>
                     Fill in the details below to add a new user to the system.
                 </DialogDescription>
@@ -200,7 +200,7 @@ function AddUserForm({ onFinished }: { onFinished: () => void }) {
 }
 
 
-export default function UsersPage() {
+export default function StaffPage() {
     const [data, setData] = React.useState<User[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
     const [sorting, setSorting] = React.useState<SortingState>([])
@@ -235,13 +235,13 @@ export default function UsersPage() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Users</CardTitle>
-                <CardDescription>Manage all user accounts in the system.</CardDescription>
+                <CardTitle>Staff</CardTitle>
+                <CardDescription>Manage all staff accounts in the system.</CardDescription>
             </CardHeader>
             <CardContent>
                  <div className="flex items-center justify-between pb-4">
                     <Input
-                        placeholder="Search users by name..."
+                        placeholder="Search staff by name..."
                         value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
                         onChange={(event) =>
                             table.getColumn("name")?.setFilterValue(event.target.value)
@@ -251,7 +251,7 @@ export default function UsersPage() {
                      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                         <DialogTrigger asChild>
                             <Button>
-                                <PlusCircle className="mr-2 h-4 w-4" /> Add User
+                                <PlusCircle className="mr-2 h-4 w-4" /> Add Staff
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[425px]">
@@ -285,7 +285,7 @@ export default function UsersPage() {
                                     <TableCell colSpan={columns.length} className="h-24 text-center">
                                        <div className="flex justify-center items-center">
                                           <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
-                                          <span>Loading users...</span>
+                                          <span>Loading staff...</span>
                                         </div>
                                     </TableCell>
                                 </TableRow>
