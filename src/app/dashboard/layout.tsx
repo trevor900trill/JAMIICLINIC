@@ -6,9 +6,9 @@ import { Header } from '@/components/dashboard/header'
 
 export default function DashboardLayout({ children }: PropsWithChildren) {
   return (
-      <div className="flex h-screen bg-muted/40 overflow-hidden">
+      <div className="flex h-screen bg-muted/40">
         <SidebarNav />
-        <div className="flex flex-col flex-1 sm:pl-14">
+        <div className="flex flex-col flex-1 sm:pl-14 overflow-hidden">
           <Header />
           <main className="flex-1 overflow-y-auto p-4 sm:p-6">
             {children}
