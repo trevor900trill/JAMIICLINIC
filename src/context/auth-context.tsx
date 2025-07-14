@@ -88,8 +88,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
     const isOnboardingRoute = ONBOARDING_ROUTES.includes(pathname);
 
+    // If user is not logged in, redirect to login page from any other page
     if (!user) {
-      // If user is not logged in, and not on a public route, redirect to login
       if (!isPublicRoute) {
         router.replace('/');
       }
@@ -98,31 +98,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // --- User is logged in, handle redirects ---
 
-    // 1. Mandatory password change
+    // 1. Mandatory password change (HIGHEST PRIORITY)
     if (user.reset_initial_password) {
       if (pathname !== '/change-password') {
         router.replace('/change-password');
       }
-      return;
+      return; // Stop further checks
     }
 
-    // 2. Doctor-specific onboarding
-    if (user.role === 'doctor') {
-      if (!user.specialty_set && pathname !== '/set-specialty') {
+    // 2. Doctor-specific onboarding: set specialty
+    if (user.role === 'doctor' && !user.specialty_set) {
+      if (pathname !== '/set-specialty') {
         router.replace('/set-specialty');
-        return;
       }
-      if (user.specialty_set && !user.clinic_created && pathname !== '/onboarding/create-clinic') {
-        router.replace('/onboarding/create-clinic');
-        return;
-      }
-       if (user.specialty_set && user.clinic_created && !user.staff_created && pathname !== '/onboarding/create-staff') {
-        router.replace('/onboarding/create-staff');
-        return;
-      }
+      return; // Stop further checks
     }
     
-    // 3. If user is fully onboarded, redirect from any public or onboarding page to dashboard
+    // 3. Doctor-specific onboarding: create clinic
+    if (user.role === 'doctor' && user.specialty_set && !user.clinic_created) {
+        if (pathname !== '/onboarding/create-clinic') {
+            router.replace('/onboarding/create-clinic');
+        }
+        return; // Stop further checks
+    }
+      
+    // 4. Doctor-specific onboarding: create staff
+    if (user.role === 'doctor' && user.clinic_created && !user.staff_created) {
+        if (pathname !== '/onboarding/create-staff') {
+            router.replace('/onboarding/create-staff');
+        }
+        return; // Stop further checks
+    }
+
+    // 5. If user is fully onboarded, redirect from any public or onboarding page to dashboard
     if (isPublicRoute || isOnboardingRoute) {
       router.replace('/dashboard');
     }
@@ -171,7 +179,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 staff_created: staff_created || false,
             };
             updateUserState(currentUser, token);
-            // Redirection is now handled by the useEffect hook
+            // Redirection is now handled by the useEffect hook in this component
         } else {
             throw new Error("Failed to decode token after login.");
         }
