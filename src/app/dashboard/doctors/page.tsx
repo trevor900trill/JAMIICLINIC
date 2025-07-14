@@ -1,3 +1,4 @@
+
 "use client"
 import React from "react"
 import {
@@ -175,7 +176,14 @@ function AddDoctorForm({ onFinished }: { onFinished: () => void }) {
 
     const form = useForm<z.infer<typeof doctorSchema>>({
         resolver: zodResolver(doctorSchema),
-        defaultValues: { role: 'doctor' },
+        defaultValues: { 
+            role: 'doctor',
+            email: "",
+            first_name: "",
+            last_name: "",
+            telephone: "",
+            gender: null,
+        },
     });
 
     async function onSubmit(values: z.infer<typeof doctorSchema>) {
@@ -198,7 +206,14 @@ function AddDoctorForm({ onFinished }: { onFinished: () => void }) {
             }
             
             toast({ title: 'Success', description: `Doctor account for ${values.first_name} created.` });
-            form.reset({ role: 'doctor' });
+            form.reset({ 
+                role: 'doctor',
+                email: "",
+                first_name: "",
+                last_name: "",
+                telephone: "",
+                gender: null,
+            });
             onFinished();
 
         } catch (error) {
@@ -245,7 +260,7 @@ function AddDoctorForm({ onFinished }: { onFinished: () => void }) {
 
 
 function DoctorsPage() {
-    const { getAuthToken, toast } = useToast();
+    const { toast } = useToast();
     const { getAuthToken: getAuth } = useAuth();
     const [data, setData] = React.useState<Doctor[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
