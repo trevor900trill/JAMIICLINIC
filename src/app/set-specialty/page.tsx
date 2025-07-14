@@ -70,7 +70,7 @@ export default function SetSpecialtyPage() {
       })
       
       await refreshUser({ specialty_set: true });
-      router.push("/onboarding/create-clinic")
+      // The withAuth HOC will handle redirecting to the next step
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
@@ -85,41 +85,43 @@ export default function SetSpecialtyPage() {
   }
 
   return (
-    <Card className="w-full max-w-md">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardHeader>
-              <div className="flex justify-center pb-4">
-                  <Stethoscope className="h-10 w-10 text-primary" />
-              </div>
-              <CardTitle className="text-center">Set Your Specialty</CardTitle>
-              <CardDescription className="text-center">
-                  To get started, please specify your medical specialty to complete your profile.
-              </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
-              name="specialty"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Your Specialty</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. Cardiology" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isLoading ? "Saving..." : "Save and Continue"}
-            </Button>
-          </CardFooter>
-        </form>
-      </Form>
-    </Card>
+    <div className="flex min-h-screen w-full flex-col bg-muted/40 items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+            <CardHeader>
+                <div className="flex justify-center pb-4">
+                    <Stethoscope className="h-10 w-10 text-primary" />
+                </div>
+                <CardTitle className="text-center">Set Your Specialty</CardTitle>
+                <CardDescription className="text-center">
+                    To get started, please specify your medical specialty to complete your profile.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <FormField
+                control={form.control}
+                name="specialty"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Your Specialty</FormLabel>
+                    <FormControl>
+                        <Input placeholder="e.g. Cardiology" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            </CardContent>
+            <CardFooter>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading ? "Saving..." : "Save and Continue"}
+                </Button>
+            </CardFooter>
+            </form>
+        </Form>
+        </Card>
+    </div>
   )
 }

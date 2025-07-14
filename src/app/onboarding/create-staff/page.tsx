@@ -60,7 +60,7 @@ function OnboardingCreateStaffPage() {
                 throw new Error(errorMessages || "Failed to create staff member.");
             }
 
-            toast({ title: "Success", description: "Staff member created successfully." });
+            toast({ title: "Success", description: "Staff member created successfully. Onboarding complete!" });
             await refreshUser({}); // No state change needed, just go to dashboard
             router.push('/dashboard');
 
@@ -73,52 +73,55 @@ function OnboardingCreateStaffPage() {
     };
     
     const handleSkip = () => {
+        toast({ title: "Onboarding Complete!", description: "Welcome to your dashboard."})
         router.push('/dashboard');
     }
 
     return (
-        <Card className="w-full max-w-lg">
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)}>
-                    <CardHeader>
-                        <div className="flex justify-center pb-4">
-                            <UserPlus className="h-10 w-10 text-primary" />
-                        </div>
-                        <CardTitle className="text-center">Add Your First Staff Member</CardTitle>
-                        <CardDescription className="text-center">
-                            Invite a nurse, receptionist, or other staff to your new clinic. You can skip this step for now.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-2 gap-4 py-4">
-                        <FormField control={form.control} name="first_name" render={({ field }) => (
-                            <FormItem><FormLabel>First Name</FormLabel><FormControl><Input placeholder="Jane" {...field} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                        <FormField control={form.control} name="last_name" render={({ field }) => (
-                            <FormItem><FormLabel>Last Name</FormLabel><FormControl><Input placeholder="Miller" {...field} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                        <FormField control={form.control} name="email" render={({ field }) => (
-                            <FormItem className="col-span-2"><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="jane.miller@example.com" {...field} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                        <FormField control={form.control} name="telephone" render={({ field }) => (
-                            <FormItem><FormLabel>Telephone</FormLabel><FormControl><Input placeholder="+254..." {...field} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                        <FormField control={form.control} name="gender" render={({ field }) => (
-                            <FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange}><FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem></SelectContent></Select><FormMessage /></FormItem>
-                        )} />
-                        <FormField control={form.control} name="position" render={({ field }) => (
-                            <FormItem><FormLabel>Position / Role</FormLabel><FormControl><Input placeholder="e.g. Nurse, Receptionist" {...field} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                    </CardContent>
-                    <CardFooter className="flex justify-between">
-                        <Button variant="outline" type="button" onClick={handleSkip}>Skip & Go to Dashboard</Button>
-                        <Button type="submit" disabled={isLoading}>
-                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {isLoading ? "Saving..." : "Add Staff & Finish"}
-                        </Button>
-                    </CardFooter>
-                </form>
-            </Form>
-        </Card>
+        <div className="flex items-center justify-center min-h-screen bg-muted/40">
+            <Card className="w-full max-w-lg">
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)}>
+                        <CardHeader>
+                            <div className="flex justify-center pb-4">
+                                <UserPlus className="h-10 w-10 text-primary" />
+                            </div>
+                            <CardTitle className="text-center">Add Your First Staff Member</CardTitle>
+                            <CardDescription className="text-center">
+                                Invite a nurse, receptionist, or other staff to your new clinic. You can skip this step for now.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-2 gap-4 py-4">
+                            <FormField control={form.control} name="first_name" render={({ field }) => (
+                                <FormItem><FormLabel>First Name</FormLabel><FormControl><Input placeholder="Jane" {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="last_name" render={({ field }) => (
+                                <FormItem><FormLabel>Last Name</FormLabel><FormControl><Input placeholder="Miller" {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="email" render={({ field }) => (
+                                <FormItem className="col-span-2"><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="jane.miller@example.com" {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="telephone" render={({ field }) => (
+                                <FormItem><FormLabel>Telephone</FormLabel><FormControl><Input placeholder="+254..." {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="gender" render={({ field }) => (
+                                <FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange}><FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="position" render={({ field }) => (
+                                <FormItem><FormLabel>Position / Role</FormLabel><FormControl><Input placeholder="e.g. Nurse, Receptionist" {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                        </CardContent>
+                        <CardFooter className="flex justify-between">
+                            <Button variant="outline" type="button" onClick={handleSkip}>Skip & Go to Dashboard</Button>
+                            <Button type="submit" disabled={isLoading}>
+                                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isLoading ? "Saving..." : "Add Staff & Finish"}
+                            </Button>
+                        </CardFooter>
+                    </form>
+                </Form>
+            </Card>
+        </div>
     )
 }
 

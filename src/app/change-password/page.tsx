@@ -22,7 +22,6 @@ import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { useAuth } from "@/context/auth-context"
 import { API_BASE_URL } from "@/lib/config"
-import withAuth from "@/components/auth/with-auth"
 
 const passwordSchema = z.object({
   new_password: z.string().min(8, "Password must be at least 8 characters long."),
@@ -34,9 +33,9 @@ const passwordSchema = z.object({
 
 type PasswordFormValues = z.infer<typeof passwordSchema>
 
-function ChangePasswordPage() {
+export default function ChangePasswordPage() {
   const router = useRouter()
-  const { user, getAuthToken, logout, refreshUser } = useAuth()
+  const { user, getAuthToken, refreshUser } = useAuth()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = React.useState(false)
 
@@ -74,11 +73,11 @@ function ChangePasswordPage() {
       
       toast({
         title: "Password Changed Successfully",
-        description: "Your password has been updated. Redirecting to dashboard...",
+        description: "Your password has been updated.",
       })
       
-      router.push('/dashboard');
-
+      // The withAuth HOC will now handle the redirect to the next step
+      // router.push('/dashboard'); is no longer needed here.
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
@@ -93,56 +92,56 @@ function ChangePasswordPage() {
   }
 
   return (
-    <Card className="w-full max-w-md">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardHeader>
-              <div className="flex justify-center pb-4">
-                  <KeyRound className="h-10 w-10 text-primary" />
-              </div>
-              <CardTitle className="text-center">Create a New Password</CardTitle>
-              <CardDescription className="text-center">
-                  For your security, you must set a new password to continue.
-              </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
-              name="new_password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>New Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="confirm_password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Confirm New Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isLoading ? "Saving..." : "Set New Password"}
-            </Button>
-          </CardFooter>
-        </form>
-      </Form>
-    </Card>
+    <div className="flex min-h-screen w-full flex-col bg-muted/40 items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <CardHeader>
+                <div className="flex justify-center pb-4">
+                    <KeyRound className="h-10 w-10 text-primary" />
+                </div>
+                <CardTitle className="text-center">Create a New Password</CardTitle>
+                <CardDescription className="text-center">
+                    For your security, you must set a new password to continue.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="new_password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>New Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="confirm_password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm New Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+            <CardFooter>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading ? "Saving..." : "Set New Password"}
+              </Button>
+            </CardFooter>
+          </form>
+        </Form>
+      </Card>
+    </div>
   )
 }
-
-export default withAuth(ChangePasswordPage);

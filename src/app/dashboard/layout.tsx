@@ -3,23 +3,8 @@
 import type { PropsWithChildren } from 'react'
 import { SidebarNav } from '@/components/dashboard/sidebar-nav'
 import { Header } from '@/components/dashboard/header'
-import { usePathname } from 'next/navigation'
 
 export default function DashboardLayout({ children }: PropsWithChildren) {
-  const pathname = usePathname();
-  
-  const isChangePasswordRoute = pathname === '/dashboard/change-password';
-
-  if (isChangePasswordRoute) {
-    return (
-      <div className="flex min-h-screen w-full flex-col bg-muted/40">
-        <main className="flex flex-1 items-center justify-center p-4 sm:p-6">
-          {children}
-        </main>
-      </div>
-    )
-  }
-
   return (
       <div className="flex min-h-screen w-full flex-col bg-muted/40">
         <SidebarNav />
