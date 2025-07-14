@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, Stethoscope } from "lucide-react"
-import { API_BASE_URL } from "@/lib/config"
+import { API_BASE_URL } from '@/lib/config'
 
 const specialtySchema = z.object({
   specialty: z.string().min(2, "Specialty is required."),
@@ -82,7 +82,6 @@ export default function SetSpecialtyPage() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred."
       toast({ variant: "destructive", title: "Error", description: errorMessage })
-    } finally {
       setIsLoading(false)
     }
   }

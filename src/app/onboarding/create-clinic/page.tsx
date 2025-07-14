@@ -42,6 +42,7 @@ export default function CreateClinicPage() {
   })
 
   const handleSkip = async () => {
+    setIsLoading(true);
     await refreshUser({ clinic_created: true }); // Mark as skipped/done
     router.push('/onboarding/create-staff');
   }
@@ -73,7 +74,6 @@ export default function CreateClinicPage() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred."
       toast({ variant: "destructive", title: "Error", description: errorMessage })
-    } finally {
       setIsLoading(false)
     }
   }
@@ -123,7 +123,7 @@ export default function CreateClinicPage() {
             )} />
             </CardContent>
             <CardFooter className="flex-col sm:flex-row gap-2">
-              <Button type="button" variant="outline" onClick={handleSkip} className="w-full sm:w-auto">Skip for now</Button>
+              <Button type="button" variant="outline" onClick={handleSkip} className="w-full sm:w-auto" disabled={isLoading}>Skip for now</Button>
               <Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isLoading ? "Saving..." : "Save and Continue"}

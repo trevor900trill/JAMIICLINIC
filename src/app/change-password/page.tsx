@@ -77,7 +77,6 @@ export default function ChangePasswordPage() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred."
       toast({ variant: "destructive", title: "Error", description: errorMessage })
-    } finally {
       setIsLoading(false)
     }
   }
