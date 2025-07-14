@@ -48,6 +48,7 @@ export default function ChangePasswordPage() {
   })
 
   async function onSubmit(data: PasswordFormValues) {
+    if (!user) return;
     setIsSubmitting(true)
     try {
       const token = getAuthToken()
@@ -76,7 +77,11 @@ export default function ChangePasswordPage() {
         description: "Your password has been updated.",
       })
       
-      router.push("/dashboard");
+      if (user.role === 'doctor') {
+        router.push("/set-specialty");
+      } else {
+        router.push("/dashboard");
+      }
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";

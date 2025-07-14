@@ -89,43 +89,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const isOnboardingPage = ONBOARDING_ROUTES.includes(pathname);
     
     if (!user) {
-        if (!isPublicPage) {
+        if (!isPublicPage && !isOnboardingPage) {
             router.replace('/');
         }
         return;
     }
 
-    // User is logged in, handle redirects
+    // User is logged in, handle redirects for required actions
     if (user.reset_initial_password) {
         if (pathname !== '/change-password') {
             router.replace('/change-password');
         }
         return;
     }
-
-    if (user.role === 'doctor') {
-        if (!user.specialty_set) {
-            if (pathname !== '/set-specialty') {
-                router.replace('/set-specialty');
-            }
-            return;
-        }
-        if (!user.clinic_created) {
-            if (pathname !== '/onboarding/create-clinic') {
-                router.replace('/onboarding/create-clinic');
-            }
-            return;
-        }
-        if (!user.staff_created) {
-            if (pathname !== '/onboarding/create-staff') {
-                router.replace('/onboarding/create-staff');
-            }
-            return;
-        }
-    }
     
     // If user is fully onboarded, redirect from public/onboarding pages to dashboard
-    if (isPublicPage || isOnboardingPage) {
+    if (isPublicPage) {
         router.replace('/dashboard');
     }
 
@@ -134,11 +113,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const refreshUser = async (updates: Partial<User>) => {
     const updatedUser = user ? { ...user, ...updates } : null;
     updateUserState(updatedUser, authToken);
+    if (updatedUser) {
+       localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
     return Promise.resolve();
   }
   
   const skipOnboardingStep = async (step: 'clinic_created' | 'staff_created') => {
     await refreshUser({ [step]: true });
+    // After skipping, check if the next step is needed or redirect to dashboard
+    const nextStep = user?.role === 'doctor' && !user.staff_created ? '/onboarding/create-staff' : '/dashboard';
+    router.push(nextStep);
   }
 
   const login = async (email: string, pass: string): Promise<void> => {
@@ -182,7 +167,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     updateUserState(null, null);
-    router.push('/');
+    router.replace('/');
   };
 
   const getAuthToken = () => {

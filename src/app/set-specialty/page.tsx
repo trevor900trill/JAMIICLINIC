@@ -57,6 +57,8 @@ export default function SetSpecialtyPage() {
         title: "Specialty Set!",
         description: "Your specialty has been successfully saved.",
       })
+      
+      router.push("/onboarding/create-clinic");
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
@@ -76,6 +78,11 @@ export default function SetSpecialtyPage() {
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
+  }
+  
+  if (user.role !== 'doctor') {
+    router.replace('/dashboard');
+    return null;
   }
 
   return (
