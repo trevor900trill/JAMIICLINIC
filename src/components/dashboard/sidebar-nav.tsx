@@ -25,6 +25,7 @@ const userRole: 'admin' | 'doctor' | 'staff' = 'admin';
 
 const allNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home, roles: ['admin', 'doctor', 'staff'] },
+  { href: '/dashboard/doctors', label: 'Doctors', icon: Stethoscope, roles: ['admin'] },
   { href: '/dashboard/users', label: 'Staff', icon: Users, roles: ['admin', 'doctor'] },
   { href: '/dashboard/clinics', label: 'Clinics', icon: Building, roles: ['admin', 'doctor'] },
   { href: '/dashboard/patients', label: 'Patients', icon: HeartPulse, roles: ['admin', 'doctor', 'staff'] },
