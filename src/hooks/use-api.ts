@@ -4,12 +4,13 @@
 import { useAuth } from "@/context/auth-context";
 import { API_BASE_URL } from "@/lib/config";
 import { useToast } from "./use-toast";
+import React from "react";
 
 export const useApi = () => {
     const { getAuthToken, logout } = useAuth();
     const { toast } = useToast();
 
-    const apiFetch = async (endpoint: string, options: RequestInit = {}): Promise<Response> => {
+    const apiFetch = React.useCallback(async (endpoint: string, options: RequestInit = {}): Promise<Response> => {
         const token = getAuthToken();
         const headers = new Headers(options.headers || {});
         
@@ -37,7 +38,7 @@ export const useApi = () => {
         }
 
         return response;
-    };
+    }, [getAuthToken, logout, toast]);
 
     return { apiFetch };
 };

@@ -286,7 +286,7 @@ function DoctorsPage() {
         } finally {
             setIsLoading(false)
         }
-    }, [apiFetch, toast]);
+    }, [toast]);
 
     React.useEffect(() => {
         fetchDoctors();

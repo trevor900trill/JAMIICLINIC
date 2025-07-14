@@ -272,7 +272,7 @@ function ClinicsPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [apiFetch, toast]);
+    }, [toast]);
 
     React.useEffect(() => {
         fetchClinics();

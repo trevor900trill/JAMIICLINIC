@@ -50,23 +50,24 @@ export default function CreateStaffPage() {
   const [isLoading, setIsLoading] = React.useState(false)
   const [clinics, setClinics] = React.useState<{id: number, name: string}[]>([])
 
-  React.useEffect(() => {
-    async function fetchClinics() {
-        if (user?.role !== 'doctor') return;
-        try {
-            const response = await apiFetch('/api/clinics/');
-            if (!response.ok) {
-                throw new Error("Could not fetch clinics.");
-            }
-            const clinicData = await response.json();
-            setClinics(clinicData);
-        } catch (error) {
-            if (error instanceof Error && error.message === "Unauthorized") return;
-            toast({ variant: "destructive", title: "Error", description: "Could not load your clinics." });
+  const fetchClinics = React.useCallback(async () => {
+    if (user?.role !== 'doctor') return;
+    try {
+        const response = await apiFetch('/api/clinics/');
+        if (!response.ok) {
+            throw new Error("Could not fetch clinics.");
         }
+        const clinicData = await response.json();
+        setClinics(clinicData);
+    } catch (error) {
+        if (error instanceof Error && error.message === "Unauthorized") return;
+        toast({ variant: "destructive", title: "Error", description: "Could not load your clinics." });
     }
+  }, [user, toast]);
+
+  React.useEffect(() => {
     fetchClinics();
-  }, [user, apiFetch, toast]);
+  }, [fetchClinics]);
 
   const form = useForm<StaffFormValues>({
     resolver: zodResolver(staffSchema),

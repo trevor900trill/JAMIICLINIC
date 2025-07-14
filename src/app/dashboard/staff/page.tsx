@@ -270,7 +270,7 @@ function UsersPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [apiFetch, toast]);
+    }, [toast]);
 
     React.useEffect(() => {
         fetchStaff();
