@@ -20,35 +20,25 @@ const withAuth = <P extends object>(
         return; 
       }
 
-      // If no user is logged in, redirect to the login page
-      if (!user) {
-        if (pathname !== '/') {
-          router.replace('/');
-        }
+      // If no user is logged in, and we are not on the login page, redirect to the login page.
+      if (!user && pathname !== '/') {
+        router.replace('/');
         return;
       }
       
-      // If user is logged in, handle routing based on onboarding state
-      if (user.reset_initial_password) {
-        if (pathname !== '/change-password') {
-          router.replace('/change-password');
-        }
-        return;
-      }
-      
-      // If user is logged in and tries to access login page, redirect to dashboard
-      if (pathname === '/') {
+      // If a user IS logged in and is on the login page, redirect to the dashboard.
+      if (user && pathname === '/') {
         router.replace('/dashboard');
         return;
       }
-
+      
       // Role-based access control for protected dashboard routes
-      if (requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
+      if (user && requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
         router.replace('/not-found');
         return;
       }
 
-    }, [user, isLoading, router, pathname]);
+    }, [user, isLoading, router, pathname, requiredRoles]);
 
     // Show a loading spinner while authentication state is being determined
     if (isLoading) {
@@ -59,12 +49,12 @@ const withAuth = <P extends object>(
         );
     }
     
-    // Prevent rendering of protected pages if user is not authenticated
+    // Prevent rendering of protected pages if user is not authenticated yet.
     if (!user && pathname !== '/') {
         return null;
     }
     
-    // Don't render the login page if the user is already logged in
+    // Prevent rendering of the login page if the user is already logged in.
     if (user && pathname === '/') {
         return null;
     }
