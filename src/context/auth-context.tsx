@@ -120,8 +120,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             reset_initial_password: reset_initial_password,
         };
         setUser(currentUser);
+        // Let the withAuth HOC handle redirection
         router.push('/dashboard');
-        
     } else {
         logout(); // If token is invalid, log out
         throw new Error("Failed to decode token after login.");

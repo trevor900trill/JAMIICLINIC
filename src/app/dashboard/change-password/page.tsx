@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { useAuth } from "@/context/auth-context"
 import { API_BASE_URL } from "@/lib/config"
+import withAuth from "@/components/auth/with-auth"
 
 const passwordSchema = z.object({
   new_password: z.string().min(8, "Password must be at least 8 characters long."),
@@ -33,7 +34,7 @@ const passwordSchema = z.object({
 
 type PasswordFormValues = z.infer<typeof passwordSchema>
 
-export default function ChangePasswordPage() {
+function ChangePasswordPage() {
   const router = useRouter()
   const { user, getAuthToken, logout, refreshUser } = useAuth()
   const { toast } = useToast()
@@ -77,7 +78,6 @@ export default function ChangePasswordPage() {
       })
       
       router.push('/dashboard');
-      router.refresh();
 
 
     } catch (error) {
@@ -93,56 +93,56 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <div className="flex items-center justify-center h-full bg-muted/40">
-      <Card className="w-full max-w-md">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardHeader>
-                <div className="flex justify-center pb-4">
-                    <KeyRound className="h-10 w-10 text-primary" />
-                </div>
-                <CardTitle className="text-center">Create a New Password</CardTitle>
-                <CardDescription className="text-center">
-                    For your security, you must set a new password to continue.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="new_password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>New Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="confirm_password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirm New Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-            <CardFooter>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoading ? "Saving..." : "Set New Password"}
-              </Button>
-            </CardFooter>
-          </form>
-        </Form>
-      </Card>
-    </div>
+    <Card className="w-full max-w-md">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <CardHeader>
+              <div className="flex justify-center pb-4">
+                  <KeyRound className="h-10 w-10 text-primary" />
+              </div>
+              <CardTitle className="text-center">Create a New Password</CardTitle>
+              <CardDescription className="text-center">
+                  For your security, you must set a new password to continue.
+              </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <FormField
+              control={form.control}
+              name="new_password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>New Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="••••••••" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="confirm_password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm New Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="••••••••" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+          <CardFooter>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isLoading ? "Saving..." : "Set New Password"}
+            </Button>
+          </CardFooter>
+        </form>
+      </Form>
+    </Card>
   )
 }
+
+export default withAuth(ChangePasswordPage);
