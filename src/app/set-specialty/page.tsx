@@ -31,7 +31,7 @@ type SpecialtyFormValues = z.infer<typeof specialtySchema>
 export default function SetSpecialtyPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const { user, getAuthToken, refreshUser } = useAuth()
+  const { user, getAuthToken, refreshUser, logout } = useAuth()
   const [isLoading, setIsLoading] = React.useState(false)
 
   const form = useForm<SpecialtyFormValues>({
@@ -78,6 +78,10 @@ export default function SetSpecialtyPage() {
       setIsLoading(false)
     }
   }
+  
+  const handleReturnToLogin = () => {
+    logout();
+  }
 
   if (!user || user.role !== 'doctor') {
     // This page is only for doctors, redirect if not a doctor
@@ -98,7 +102,7 @@ export default function SetSpecialtyPage() {
               </div>
               <CardTitle className="text-center">Set Your Medical Specialty</CardTitle>
               <CardDescription className="text-center">
-                Please enter your primary medical specialty (e.g., Cardiology, Pediatrics).
+                Your account <span className="font-medium text-foreground">{user.email}</span> requires a primary medical specialty (e.g., Cardiology, Pediatrics).
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -116,8 +120,9 @@ export default function SetSpecialtyPage() {
                 )}
               />
             </CardContent>
-            <CardFooter>
-              <Button type="submit" className="w-full" disabled={isLoading}>
+            <CardFooter className="flex-col sm:flex-row gap-2">
+              <Button type="button" variant="outline" onClick={handleReturnToLogin} className="w-full sm:w-auto">Return to Login</Button>
+              <Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isLoading ? "Saving..." : "Save and Continue"}
               </Button>
