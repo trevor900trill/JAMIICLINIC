@@ -76,13 +76,10 @@ export default function ChangePasswordPage() {
         description: "Your password has been updated.",
       })
       
-      if (user?.role === 'doctor') {
-        router.push("/dashboard/set-specialty");
-      } else {
-        // Log out other roles and redirect to login
-        logout()
-        router.push("/")
-      }
+      // The withAuth HOC will handle the redirect to the next step
+      // for the doctor, or to the dashboard for other roles.
+      // A simple refresh of the page can trigger the check.
+      router.refresh();
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
@@ -97,7 +94,7 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <div className="flex items-center justify-center h-full bg-muted/40">
+    <div className="flex items-center justify-center h-screen bg-muted/40">
       <Card className="w-full max-w-md">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>

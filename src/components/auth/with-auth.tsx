@@ -26,10 +26,8 @@ const withAuth = <P extends object>(
         return;
       }
       
-      const isDoctorOnboarding = user.role === 'doctor' && (user.reset_initial_password || !user.specialty_set || !user.clinic_created);
-
       // --- Onboarding Flow ---
-      // 1. Force password change if required (all roles)
+      // 1. Force password change if required (highest priority)
       if (user.reset_initial_password) {
         if (pathname !== '/dashboard/change-password') {
           router.replace('/dashboard/change-password');
@@ -37,7 +35,9 @@ const withAuth = <P extends object>(
         return; // Block further checks until password is changed
       }
       
-      // 2. Force specialty set for doctors
+      const isDoctorOnboarding = user.role === 'doctor' && (!user.specialty_set || !user.clinic_created);
+
+      // 2. Force specialty set for doctors (after password change)
       if (user.role === 'doctor' && !user.specialty_set) {
         if (pathname !== '/dashboard/set-specialty') {
           router.replace('/dashboard/set-specialty');
@@ -45,7 +45,7 @@ const withAuth = <P extends object>(
         return;
       }
 
-      // 3. Force clinic creation for doctors
+      // 3. Force clinic creation for doctors (after specialty set)
       if (user.role === 'doctor' && user.specialty_set && !user.clinic_created) {
          if (pathname !== '/onboarding/create-clinic' && pathname !== '/onboarding/create-staff') {
            router.replace('/onboarding/create-clinic');
@@ -61,8 +61,11 @@ const withAuth = <P extends object>(
         '/onboarding/create-clinic',
         '/onboarding/create-staff'
       ];
+      
+      const isOnboardingRoute = onboardingRoutes.includes(pathname);
+      const needsOnboarding = user.reset_initial_password || (user.role === 'doctor' && (!user.specialty_set || !user.clinic_created));
 
-      if (!isDoctorOnboarding && onboardingRoutes.includes(pathname)) {
+      if (isOnboardingRoute && !needsOnboarding) {
           router.replace('/dashboard');
           return;
       }
@@ -93,7 +96,12 @@ const withAuth = <P extends object>(
         (requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role));
 
     if (isRedirecting) {
-       return null; 
+       // Render a loader during the redirect to avoid flashing content
+       return (
+         <div className="flex h-screen items-center justify-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+       ); 
     }
 
     return <WrappedComponent {...props} />;
