@@ -78,7 +78,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (isLoading) return;
 
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
-    const isOnboardingRoute = ONBOARDING_ROUTES.includes(pathname);
 
     if (user) {
         // 1. Highest priority: Force password change if needed.
@@ -86,7 +85,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             router.replace('/change-password');
             return;
         }
-
+        
         // 2. Second priority: Force specialty set for doctors if needed.
         if (!user.reset_initial_password && user.role === 'doctor' && !user.specialty_set && pathname !== '/set-specialty') {
             router.replace('/set-specialty');
@@ -135,13 +134,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             role: userData.role,
             avatarUrl: `https://placehold.co/32x32.png`,
             reset_initial_password: userData.reset_initial_password,
-            specialty_set: userData.specialty_set || false,
+            specialty_set: userData.specialty_set ?? true,
             clinic_created: false,
             staff_created: false,
         };
         updateUserState(currentUser, token);
-        
-        // Let the useEffect handle the redirection based on the new user state
     } else {
         throw new Error("Login response did not contain user data or token.");
     }
