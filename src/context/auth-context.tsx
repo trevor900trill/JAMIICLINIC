@@ -98,9 +98,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const skipOnboardingStep = async (step: 'clinic_created' | 'staff_created') => {
     await refreshUser({ [step]: true });
-    // After skipping, we need to manually trigger the next routing check
-    // The withAuth HOC will handle the actual redirect.
-    // A simple refresh or a programmatic push can work.
     router.push('/dashboard'); 
   }
 
@@ -135,19 +132,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setAuthToken(token);
         setUser(currentUser);
         saveStateToStorage(currentUser, token);
-        
-        // Corrected redirection logic
-        if (currentUser.reset_initial_password) {
-            router.push('/change-password');
-        } else if (currentUser.role === 'doctor' && !currentUser.specialty_set) {
-            router.push('/set-specialty');
-        } else if (currentUser.role === 'doctor' && !currentUser.clinic_created) {
-            router.push('/onboarding/create-clinic');
-        } else if (currentUser.role === 'doctor' && !currentUser.staff_created) {
-            router.push('/onboarding/create-staff');
-        } else {
-            router.push('/dashboard');
-        }
+        // NO REDIRECTS HERE. withAuth will handle it.
     } else {
         throw new Error("Failed to decode token after login.");
     }
@@ -157,7 +142,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     setAuthToken(null);
     saveStateToStorage(null, null); // Clear storage
-    router.push('/');
+    router.replace('/');
   };
 
   const getAuthToken = () => {

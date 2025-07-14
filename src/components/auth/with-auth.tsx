@@ -21,8 +21,8 @@ const withAuth = <P extends object>(
       }
 
       const isAuthPage = pathname === '/';
-      const isPublicOnboarding = ['/change-password', '/set-specialty'].includes(pathname) || pathname.startsWith('/onboarding');
-      
+      const isOnboardingPage = ['/change-password', '/set-specialty'].includes(pathname) || pathname.startsWith('/onboarding');
+
       if (!user) {
         // If user is not authenticated, they should only be on the login page.
         if (!isAuthPage) {
@@ -31,44 +31,47 @@ const withAuth = <P extends object>(
         return;
       }
       
-      // --- Sequential Onboarding Logic ---
+      // --- Start of Sequential Onboarding Logic ---
       
       // 1. Force password change if required
-      if (user.reset_initial_password && pathname !== '/change-password') {
-        router.replace('/change-password');
+      if (user.reset_initial_password) {
+        if (pathname !== '/change-password') {
+          router.replace('/change-password');
+        }
         return;
       }
-      if (!user.reset_initial_password && pathname === '/change-password') {
-         router.replace('/dashboard');
+
+      // 2. Force specialty setting for doctors if password has been changed
+      if (user.role === 'doctor' && !user.specialty_set) {
+         if (pathname !== '/set-specialty') {
+            router.replace('/set-specialty');
+         }
          return;
       }
 
-      // 2. Force specialty setting for doctors if password is changed
-      if (!user.reset_initial_password && user.role === 'doctor' && !user.specialty_set && pathname !== '/set-specialty') {
-        router.replace('/set-specialty');
-        return;
-      }
-
       // 3. Force clinic creation for doctors after specialty is set
-      if (!user.reset_initial_password && user.role === 'doctor' && user.specialty_set && !user.clinic_created && pathname !== '/onboarding/create-clinic') {
-        router.replace('/onboarding/create-clinic');
-        return;
+      if (user.role === 'doctor' && !user.clinic_created) {
+          if (pathname !== '/onboarding/create-clinic') {
+              router.replace('/onboarding/create-clinic');
+          }
+          return;
       }
       
       // 4. Force staff creation for doctors after clinic is created
-      if (!user.reset_initial_password && user.role === 'doctor' && user.specialty_set && user.clinic_created && !user.staff_created && pathname !== '/onboarding/create-staff') {
-        router.replace('/onboarding/create-staff');
-        return;
+      if (user.role === 'doctor' && !user.staff_created) {
+          if (pathname !== '/onboarding/create-staff') {
+              router.replace('/onboarding/create-staff');
+          }
+          return;
       }
       
-      // All onboarding complete, or not required. Now, handle general routing.
+      // --- End of Onboarding ---
+      // All onboarding is complete. Handle general routing.
       
-      // If user is fully authenticated and tries to access login or onboarding pages, redirect to dashboard
-      if (isAuthPage || isPublicOnboarding) {
-        if(!user.reset_initial_password && (user.role !== 'doctor' || user.staff_created)) {
-            router.replace('/dashboard');
-            return;
-        }
+      // If user is fully authenticated and tries to access login or any onboarding pages, redirect to dashboard
+      if (isAuthPage || isOnboardingPage) {
+        router.replace('/dashboard');
+        return;
       }
 
       // Role-based access control for other pages
@@ -79,6 +82,7 @@ const withAuth = <P extends object>(
 
     }, [user, isLoading, router, pathname, requiredRoles]);
 
+    // Show a global loading spinner while authentication status is being determined.
     if (isLoading) {
       return (
         <div className="flex h-screen items-center justify-center">
@@ -87,12 +91,11 @@ const withAuth = <P extends object>(
       );
     }
     
-    // Prevent rendering of pages if a redirect is imminent to avoid flashing content
-    if (!user && pathname !== '/') return null;
-    if (user && user.reset_initial_password && pathname !== '/change-password') return null;
-    if (user && user.role === 'doctor' && !user.specialty_set && pathname !== '/set-specialty' && !user.reset_initial_password) return null;
-
-
+    // Prevent flashing content by only rendering the component when routing logic is complete
+    const isAuthPage = pathname === '/';
+    if (!user && !isAuthPage) return null; // Don't render protected page if not logged in
+    if (user && isAuthPage) return null; // Don't render login page if logged in
+    
     return <WrappedComponent {...props} />;
   };
 
