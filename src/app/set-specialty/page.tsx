@@ -58,6 +58,7 @@ export default function SetSpecialtyPage() {
         description: "Your specialty has been successfully saved.",
       })
       
+      // After setting specialty, redirect to next onboarding step
       router.push("/onboarding/create-clinic");
 
     } catch (error) {
@@ -80,10 +81,18 @@ export default function SetSpecialtyPage() {
     );
   }
   
+  // This page should only be for doctors
   if (user.role !== 'doctor') {
     router.replace('/dashboard');
     return null;
   }
+  
+  // If specialty is already set, redirect to dashboard
+  if(user.specialty_set){
+    router.replace('/dashboard');
+    return null;
+  }
+
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40 items-center justify-center p-4">

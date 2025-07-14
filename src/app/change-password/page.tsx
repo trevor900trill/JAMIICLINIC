@@ -77,11 +77,8 @@ export default function ChangePasswordPage() {
         description: "Your password has been updated.",
       })
       
-      if (user.role === 'doctor') {
-        router.push("/set-specialty");
-      } else {
-        router.push("/dashboard");
-      }
+      // After password change, logic is now handled by AuthProvider's useEffect
+      // No need to manually push routes here, it will automatically detect the next step
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";

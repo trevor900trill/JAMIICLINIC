@@ -1,3 +1,4 @@
+
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -44,7 +45,7 @@ export function LoginForm() {
     setIsLoading(true)
     try {
       await login(data.email, data.password)
-      // The redirect is now handled within the login function itself
+      // The redirect is now handled within the AuthProvider's useEffect hook
       // We show a generic toast here, which is fine as the user will be navigated away.
       toast({
         title: "Login Successful",

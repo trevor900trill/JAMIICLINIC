@@ -6,14 +6,6 @@ import { useRouter, usePathname } from 'next/navigation';
 import { API_BASE_URL } from '@/lib/config';
 import { Loader2 } from 'lucide-react';
 
-const jwtDecode = (token: string) => {
-  try {
-    return JSON.parse(atob(token.split('.')[1]));
-  } catch (e) {
-    return null;
-  }
-};
-
 export type UserRole = 'admin' | 'doctor' | 'staff';
 
 export interface User {
@@ -77,7 +69,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const storedToken = localStorage.getItem('authToken');
     const storedUser = safeJSONParse(localStorage.getItem('user'));
     if (storedToken && storedUser) {
-        updateUserState(storedUser, storedToken);
+        setUser(storedUser);
+        setAuthToken(storedToken);
     }
     setIsLoading(false);
   }, []);
@@ -88,24 +81,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
     const isOnboardingRoute = ONBOARDING_ROUTES.includes(pathname);
     
-    // If no user, redirect to login from any protected route
-    if (!user && !isPublicRoute) {
-      router.replace('/');
-      return;
-    }
-
     if (user) {
-      // HIGHEST PRIORITY: If password change is required, force it.
+      // Highest priority: If password change is required, force it.
       if (user.reset_initial_password && pathname !== '/change-password') {
         router.replace('/change-password');
         return;
       }
+      
+      // If password is fine, but they are a doctor who hasn't set a specialty
+      if (!user.reset_initial_password && user.role === 'doctor' && !user.specialty_set && pathname !== '/set-specialty') {
+        router.replace('/set-specialty');
+        return;
+      }
 
-      // If user is fully onboarded and on a public or onboarding page, redirect to dashboard.
-      if (!user.reset_initial_password && (isPublicRoute || isOnboardingRoute)) {
-        if (pathname !== '/dashboard') {
-            router.replace('/dashboard');
-        }
+      // If user is fully onboarded and tries to access login page, redirect to dashboard.
+      if (!user.reset_initial_password && isPublicRoute) {
+         router.replace('/dashboard');
+      }
+
+    } else {
+      // If no user, redirect to login from any protected route
+      if (!isPublicRoute) {
+        router.replace('/');
       }
     }
 
@@ -120,6 +117,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const skipOnboardingStep = async (step: 'clinic_created' | 'staff_created') => {
     await refreshUser({ [step]: true });
     // After skipping, AuthProvider's useEffect will handle the next redirect
+    if (step === 'clinic_created') {
+        router.push('/onboarding/create-staff');
+    } else {
+        router.push('/dashboard');
+    }
   }
 
   const login = async (email: string, pass: string): Promise<void> => {
@@ -137,25 +139,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         const data = await response.json();
-        const { access: token, reset_initial_password, specialty_set, clinic_created, staff_created } = data;
-        const decodedUser = jwtDecode(token);
+        const { access: token, user: userData } = data;
         
-        if (decodedUser) {
+        if (userData && token) {
             const currentUser: User = {
-                id: decodedUser.user_id,
-                name: decodedUser.name,
-                email: decodedUser.email,
-                role: decodedUser.role,
+                id: userData.id,
+                name: `${userData.first_name} ${userData.last_name}`,
+                email: userData.email,
+                role: userData.role,
                 avatarUrl: `https://placehold.co/32x32.png`,
-                reset_initial_password: reset_initial_password,
-                specialty_set: specialty_set || false,
-                clinic_created: clinic_created || false,
-                staff_created: staff_created || false,
+                reset_initial_password: userData.reset_initial_password,
+                // These will be false from the API initially for new users
+                specialty_set: false, 
+                clinic_created: false,
+                staff_created: false,
             };
             updateUserState(currentUser, token);
             // Redirection is now handled by the useEffect hook in this component
         } else {
-            throw new Error("Failed to decode token after login.");
+            throw new Error("Login response did not contain user data or token.");
         }
     } finally {
         setIsLoading(false);
@@ -163,6 +165,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
+    // Clear state first to prevent flash of old content
     updateUserState(null, null);
     router.replace('/');
   };
@@ -171,6 +174,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return authToken;
   }
   
+  // This loader is for the initial app load, not for login button state
   if (isLoading) {
     return (
         <div className="flex h-screen items-center justify-center">
