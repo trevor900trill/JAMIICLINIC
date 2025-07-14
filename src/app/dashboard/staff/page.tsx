@@ -303,7 +303,7 @@ function UsersPage() {
                 <CardDescription>Manage all staff accounts in the system.</CardDescription>
             </CardHeader>
             <CardContent>
-                 <div className="flex items-center justify-between pb-4">
+                 <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pb-4">
                     <Input
                         placeholder="Search staff by name..."
                         value={(table.getColumn("first_name")?.getFilterValue() as string) ?? ""}
@@ -315,7 +315,7 @@ function UsersPage() {
                     {user?.role === 'doctor' && (
                         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                             <DialogTrigger asChild>
-                                <Button>
+                                <Button className="w-full sm:w-auto">
                                     <PlusCircle className="mr-2 h-4 w-4" /> Add Staff
                                 </Button>
                             </DialogTrigger>

@@ -319,7 +319,7 @@ function DoctorsPage() {
                 <CardDescription>Manage all doctors in the system.</CardDescription>
             </CardHeader>
             <CardContent>
-                 <div className="flex items-center justify-between pb-4">
+                 <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pb-4">
                     <Input
                         placeholder="Search by doctor's name..."
                         value={(table.getColumn("full_name")?.getFilterValue() as string) ?? ""}
@@ -330,7 +330,7 @@ function DoctorsPage() {
                     />
                      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                         <DialogTrigger asChild>
-                            <Button>
+                            <Button className="w-full sm:w-auto">
                                 <PlusCircle className="mr-2 h-4 w-4" /> Add Doctor
                             </Button>
                         </DialogTrigger>

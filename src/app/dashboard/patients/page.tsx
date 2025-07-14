@@ -335,7 +335,7 @@ function PatientsPage() {
                 <CardDescription>View and manage patient records.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="flex items-center justify-between pb-4">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pb-4">
                     <Input
                         placeholder="Search by patient name..."
                         value={(table.getColumn("first_name")?.getFilterValue() as string) ?? ""}
@@ -346,7 +346,7 @@ function PatientsPage() {
                     />
                     <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                         <DialogTrigger asChild>
-                           <Button>
+                           <Button className="w-full sm:w-auto">
                                 <PlusCircle className="mr-2 h-4 w-4" /> Add Patient
                             </Button>
                         </DialogTrigger>
