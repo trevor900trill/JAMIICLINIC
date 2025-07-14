@@ -23,7 +23,7 @@ import { Loader2, KeyRound } from "lucide-react"
 import { API_BASE_URL } from '@/lib/config'
 
 const changePasswordSchema = z.object({
-  new_password: z.string().min(8, "Password must be at least 8 characters long."),
+  new_password: z.string().min(8, "Password must be at least 8 characters long.").regex(/[~!@#$%^&*]/, "Password must contain at least one special character eg.\"~!@#$%^&*\""),
   confirm_password: z.string(),
 }).refine(data => data.new_password === data.confirm_password, {
   message: "Passwords do not match",
