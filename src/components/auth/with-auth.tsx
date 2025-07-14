@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { ComponentType, useEffect } from 'react';
@@ -25,19 +26,37 @@ const withAuth = <P extends object>(
         return;
       }
 
-      // If user needs to change password, redirect them and prevent access to other pages
-      if (user.reset_initial_password && pathname !== '/dashboard/change-password') {
-        router.replace('/dashboard/change-password');
-        return;
+      // --- Onboarding Flow ---
+      // 1. Force password change if required
+      if (user.reset_initial_password) {
+        if (pathname !== '/dashboard/change-password') {
+          router.replace('/dashboard/change-password');
+        }
+        return; // Block further checks until password is changed
       }
       
-      // If user is on change-password page but doesn't need to be, redirect to dashboard
+      // 2. Force specialty set for doctors if required
+      if (user.role === 'doctor' && !user.specialty) {
+        if (pathname !== '/dashboard/set-specialty') {
+          router.replace('/dashboard/set-specialty');
+        }
+        return; // Block further checks until specialty is set
+      }
+
+      // --- Post-Onboarding Redirects ---
+      // If user is on an onboarding page but doesn't need to be, redirect to dashboard
       if (!user.reset_initial_password && pathname === '/dashboard/change-password') {
           router.replace('/dashboard');
           return;
       }
+      if (user.role !== 'doctor' || (user.role === 'doctor' && user.specialty)) {
+          if (pathname === '/dashboard/set-specialty') {
+              router.replace('/dashboard');
+              return;
+          }
+      }
 
-      // If roles are required, check for them
+      // --- Role-based Access Control ---
       if (requiredRoles && requiredRoles.length > 0) {
         const hasRequiredRole = requiredRoles.includes(user.role);
         if (!hasRequiredRole) {
@@ -55,8 +74,11 @@ const withAuth = <P extends object>(
       );
     }
     
-    // Prevent rendering the component if a redirect is imminent
+    // --- Prevent rendering if a redirect is imminent ---
     if (user.reset_initial_password && pathname !== '/dashboard/change-password') {
+      return null;
+    }
+    if (user.role === 'doctor' && !user.specialty && pathname !== '/dashboard/set-specialty') {
       return null;
     }
     if (requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {

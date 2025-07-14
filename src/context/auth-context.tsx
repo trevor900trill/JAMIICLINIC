@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -22,7 +23,8 @@ export interface User {
   email: string; // From token 'email'
   role: UserRole; // From token 'role'
   avatarUrl: string;
-  reset_initial_password?: boolean; // From login response
+  reset_initial_password?: boolean;
+  specialty?: string | null;
 }
 
 interface AuthContextType {
@@ -31,9 +33,36 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<void>;
   logout: () => void;
   getAuthToken: () => string | null;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// A new endpoint to get full user details, which is not in the provided swagger.
+// We are assuming its existence for the specialty flow.
+const fetchUserDetails = async (token: string): Promise<User | null> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/users/me/`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) return null;
+        const data = await response.json();
+        const decodedToken = jwtDecode(token);
+
+        return {
+            id: decodedToken.user_id,
+            name: data.name || decodedToken.name,
+            email: data.email,
+            role: data.role,
+            specialty: data.specialty, // This is the key field we need
+            avatarUrl: `https://placehold.co/32x32.png`,
+            reset_initial_password: localStorage.getItem('reset_initial_password') === 'true',
+        };
+    } catch {
+        return null;
+    }
+};
+
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -41,40 +70,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    try {
-      const storedToken = localStorage.getItem('authToken');
-      if (storedToken) {
-        const decodedUser = jwtDecode(storedToken);
-        if (decodedUser) {
-            const storedUser: User = {
-                id: decodedUser.user_id,
-                name: decodedUser.name,
-                email: decodedUser.email,
-                role: decodedUser.role,
-                avatarUrl: `https://placehold.co/32x32.png`,
-                // This value is session-specific and not stored in JWT,
-                // so we retrieve it from another localStorage item if it exists.
-                reset_initial_password: localStorage.getItem('reset_initial_password') === 'true'
-            };
-            setUser(storedUser);
-            setAuthToken(storedToken);
-
-            // If the user refreshes on a page that isn't the change password page,
-            // and they need to reset their password, redirect them.
-            if (storedUser.reset_initial_password) {
-              router.push('/dashboard/change-password');
-            }
+  const refreshUser = async () => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+        setIsLoading(true);
+        const userDetails = await fetchUserDetails(token);
+        if (userDetails) {
+            setUser(userDetails);
         }
-      }
-    } catch (error) {
-      console.error("Failed to initialize auth state", error)
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('reset_initial_password');
-    } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-  }, [router]);
+  }
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        const storedToken = localStorage.getItem('authToken');
+        if (storedToken) {
+          setAuthToken(storedToken);
+          const userDetails = await fetchUserDetails(storedToken);
+          if (userDetails) {
+              setUser(userDetails);
+          } else {
+             // Fallback to JWT if /me fails
+             const decodedUser = jwtDecode(storedToken);
+             if(decodedUser) {
+                setUser({
+                    id: decodedUser.user_id,
+                    name: decodedUser.name,
+                    email: decodedUser.email,
+                    role: decodedUser.role,
+                    avatarUrl: `https://placehold.co/32x32.png`,
+                    reset_initial_password: localStorage.getItem('reset_initial_password') === 'true'
+                })
+             }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to initialize auth state", error)
+        logout();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    initializeAuth();
+  }, []);
 
   const login = async (email: string, pass: string): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/api/login/`, {
@@ -92,30 +132,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const data = await response.json();
     const { access: token, reset_initial_password } = data;
+
+    localStorage.setItem('authToken', token);
+    setAuthToken(token);
     
-    const decodedUser = jwtDecode(token);
-    if (decodedUser) {
-        const userPayload: User = {
-            id: decodedUser.user_id,
-            name: decodedUser.name,
-            email: decodedUser.email,
-            role: decodedUser.role,
-            avatarUrl: `https://placehold.co/32x32.png`,
-            reset_initial_password: reset_initial_password
-        };
-        setUser(userPayload);
-        setAuthToken(token);
-        localStorage.setItem('authToken', token);
-        
-        if (reset_initial_password) {
-            localStorage.setItem('reset_initial_password', 'true');
+    // Store reset_password flag before fetching full details
+    if (reset_initial_password) {
+        localStorage.setItem('reset_initial_password', 'true');
+    } else {
+        localStorage.removeItem('reset_initial_password');
+    }
+
+    const userDetails = await fetchUserDetails(token);
+    
+    if (userDetails) {
+        setUser(userDetails);
+        if (userDetails.reset_initial_password) {
             router.push('/dashboard/change-password');
+        } else if (userDetails.role === 'doctor' && !userDetails.specialty) {
+            router.push('/dashboard/set-specialty');
         } else {
-            localStorage.removeItem('reset_initial_password');
             router.push('/dashboard');
         }
     } else {
-        throw new Error("Failed to decode token");
+        throw new Error("Failed to fetch user details after login.");
     }
   };
 
@@ -131,7 +171,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, getAuthToken }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, getAuthToken, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
