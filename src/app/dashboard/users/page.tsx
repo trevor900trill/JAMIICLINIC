@@ -45,6 +45,17 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 
 
@@ -62,6 +73,31 @@ export type User = {
     email: string
     role: "doctor" | "admin" | "staff"
     status: "Active" | "Inactive"
+}
+
+
+function DeactivateUserDialog() {
+    return (
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
+                    Deactivate
+                </DropdownMenuItem>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure you want to deactivate this user?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This action will temporarily disable the user's account and they will not be able to log in. You can reactivate their account later.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction>Deactivate</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    )
 }
 
 export const columns: ColumnDef<User>[] = [
@@ -114,7 +150,7 @@ export const columns: ColumnDef<User>[] = [
                         <DropdownMenuItem>Edit</DropdownMenuItem>
                         <DropdownMenuItem>View Details</DropdownMenuItem>
                          <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">Deactivate</DropdownMenuItem>
+                        <DeactivateUserDialog />
                     </DropdownMenuContent>
                 </DropdownMenu>
             )

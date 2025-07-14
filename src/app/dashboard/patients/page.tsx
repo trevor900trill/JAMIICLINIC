@@ -37,6 +37,17 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
     DropdownMenu,
@@ -166,6 +177,30 @@ function AddPatientForm({ onFinished }: { onFinished: () => void }) {
   )
 }
 
+function DeletePatientDialog() {
+    return (
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                 <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
+                    Delete Patient
+                </DropdownMenuItem>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete this patient's record.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction>Continue</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    )
+}
+
 export const columns: ColumnDef<Patient>[] = [
   {
     accessorKey: "name",
@@ -214,7 +249,7 @@ export const columns: ColumnDef<Patient>[] = [
             <DropdownMenuItem>View Record</DropdownMenuItem>
             <DropdownMenuItem>Edit Details</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">Delete Patient</DropdownMenuItem>
+            <DeletePatientDialog />
           </DropdownMenuContent>
         </DropdownMenu>
       )
