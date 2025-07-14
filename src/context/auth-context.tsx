@@ -121,22 +121,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             reset_initial_password: userData.reset_initial_password,
         };
         updateUserState(currentUser, token);
-        // Redirection is now handled by the useEffect hook
+        router.push('/dashboard');
     } else {
         throw new Error("Login response did not contain user data or token.");
     }
   };
 
   const logout = () => {
+    // Navigate away first to prevent a flash of an empty dashboard
+    router.push('/');
+    // Then clear the state
     updateUserState(null, null);
-    router.replace('/');
   };
 
   const getAuthToken = () => {
     return authToken;
   }
   
-  if (isLoading && !user) {
+  const isProtectedRoute = !PUBLIC_ROUTES.includes(pathname);
+
+  if (isLoading || (isProtectedRoute && !user)) {
     return (
         <div className="flex h-screen items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
