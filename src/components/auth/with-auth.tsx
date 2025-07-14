@@ -27,6 +27,8 @@ const withAuth = <P extends object>(
       }
       
       // --- Onboarding Flow ---
+      // This is a sequential check. The first condition that is true will trigger a redirect and stop further checks.
+
       // 1. Force password change if required (highest priority)
       if (user.reset_initial_password) {
         if (pathname !== '/dashboard/change-password') {
@@ -35,9 +37,7 @@ const withAuth = <P extends object>(
         return; // Block further checks until password is changed
       }
       
-      const isDoctorOnboarding = user.role === 'doctor' && (!user.specialty_set || !user.clinic_created);
-
-      // 2. Force specialty set for doctors (after password change)
+      // 2. Force specialty set for doctors (only if password is not required to be reset)
       if (user.role === 'doctor' && !user.specialty_set) {
         if (pathname !== '/dashboard/set-specialty') {
           router.replace('/dashboard/set-specialty');
@@ -45,7 +45,7 @@ const withAuth = <P extends object>(
         return;
       }
 
-      // 3. Force clinic creation for doctors (after specialty set)
+      // 3. Force clinic creation for doctors (only after specialty is set)
       if (user.role === 'doctor' && user.specialty_set && !user.clinic_created) {
          if (pathname !== '/onboarding/create-clinic' && pathname !== '/onboarding/create-staff') {
            router.replace('/onboarding/create-clinic');
@@ -89,11 +89,15 @@ const withAuth = <P extends object>(
     }
     
     // --- Prevent rendering if a redirect is imminent ---
-    const isRedirecting = 
-        (user.reset_initial_password && pathname !== '/dashboard/change-password') ||
-        (user.role === 'doctor' && !user.specialty_set && pathname !== '/dashboard/set-specialty') ||
-        (user.role === 'doctor' && user.specialty_set && !user.clinic_created && !pathname.startsWith('/onboarding')) ||
-        (requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role));
+    let isRedirecting = false;
+    if (user) {
+        isRedirecting = 
+            (user.reset_initial_password && pathname !== '/dashboard/change-password') ||
+            (!user.reset_initial_password && user.role === 'doctor' && !user.specialty_set && pathname !== '/dashboard/set-specialty') ||
+            (!user.reset_initial_password && user.role === 'doctor' && user.specialty_set && !user.clinic_created && !pathname.startsWith('/onboarding')) ||
+            (requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role));
+    }
+
 
     if (isRedirecting) {
        // Render a loader during the redirect to avoid flashing content
