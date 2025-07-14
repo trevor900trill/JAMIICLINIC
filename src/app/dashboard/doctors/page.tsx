@@ -72,7 +72,10 @@ export type Doctor = {
     email: string;
     telephone: string;
     gender: 'male' | 'female' | null;
-    specialty?: string; // This might come from another endpoint, keeping it optional
+    specialty?: {
+        id: number;
+        name: string;
+    };
 }
 
 const doctorSchema = z.object({
@@ -134,7 +137,10 @@ export const columns: ColumnDef<Doctor>[] = [
     {
         accessorKey: "specialty",
         header: "Specialty",
-        cell: ({ row }) => <div className="capitalize">{row.getValue("specialty") || 'N/A'}</div>,
+        cell: ({ row }) => {
+            const specialty = row.original.specialty;
+            return <div className="capitalize">{specialty?.name || 'N/A'}</div>
+        },
     },
     {
         accessorKey: "telephone",
@@ -269,15 +275,7 @@ function DoctorsPage() {
             const response = await apiFetch('/api/users/doctors/');
             if (!response.ok) throw new Error("Failed to fetch doctors");
             const doctorsData = await response.json();
-            
-            // The specialty might need to be fetched from a different endpoint.
-            // For now, we'll map it as a placeholder.
-            const doctorsWithPlaceholderSpecialty = doctorsData.map((doc: any) => ({
-                ...doc,
-                specialty: 'General', // Placeholder
-            }))
-
-            setData(doctorsWithPlaceholderSpecialty);
+            setData(doctorsData);
 
         } catch (error) {
              if (error instanceof Error && error.message === "Unauthorized") return;
