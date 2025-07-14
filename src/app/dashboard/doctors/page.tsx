@@ -4,7 +4,6 @@ import {
     ColumnDef,
     ColumnFiltersState,
     SortingState,
-    VisibilityState,
     flexRender,
     getCoreRowModel,
     getFilteredRowModel,
@@ -12,9 +11,13 @@ import {
     getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table"
+import * as z from "zod"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { MoreHorizontal, PlusCircle, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -55,26 +58,34 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DataTablePagination } from "@/components/ui/data-table-pagination"
 import withAuth from "@/components/auth/with-auth"
 import type { UserRole } from "@/context/auth-context"
+import { useAuth } from "@/context/auth-context"
+import { useToast } from "@/hooks/use-toast"
+import { API_BASE_URL } from "@/lib/config"
 
-
-const mockDoctors = [
-    { id: "doc-1", name: "Dr. Wayne Musungu", email: "waynemuyera17@gmail.com", specialty: "Cardiology", status: "Active" },
-    { id: "doc-2", name: "Dr. Stacy Wanjiru", email: "stacy@gmail.com", specialty: "Pediatrics", status: "Active" },
-    { id: "doc-3", name: "Dr. Emily White", email: "emily.white@example.com", specialty: "Dermatology", status: "Inactive" },
-    { id: "doc-4", name: "Dr. James Green", email: "james.green@example.com", specialty: "Orthopedics", status: "Active" },
-]
-
+// Based on AdminCreateUser schema, for doctors
 export type Doctor = {
-    id: string
-    name: string
-    email: string
-    specialty: string
-    status: "Active" | "Inactive"
+    id: number;
+    email: string;
+    first_name: string;
+    last_name: string;
+    gender: 'male' | 'female' | null;
+    telephone: string;
+    role: 'doctor';
+    specialty?: string; // Not in create user, but useful for display
 }
+
+const doctorSchema = z.object({
+  email: z.string().email(),
+  first_name: z.string().min(1),
+  last_name: z.string().min(1),
+  telephone: z.string().min(10),
+  role: z.literal('doctor'),
+  gender: z.enum(['male', 'female']).optional().nullable(),
+})
 
 
 function DeactivateDoctorDialog() {
@@ -103,18 +114,19 @@ function DeactivateDoctorDialog() {
 
 export const columns: ColumnDef<Doctor>[] = [
     {
-        accessorKey: "name",
+        accessorKey: "first_name",
         header: "Name",
         cell: ({ row }) => {
             const user = row.original
+            const name = `${user.first_name} ${user.last_name}`
             return (
                 <div className="flex items-center gap-3">
                     <Avatar className="hidden h-9 w-9 sm:flex">
                         <AvatarImage src={`https://placehold.co/36x36.png`} alt="Avatar" data-ai-hint="person portrait" />
-                        <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                        <AvatarFallback>{name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                     </Avatar>
                     <div className="grid gap-0.5">
-                        <p className="font-medium">{user.name}</p>
+                        <p className="font-medium">{name}</p>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
                     </div>
                 </div>
@@ -124,15 +136,12 @@ export const columns: ColumnDef<Doctor>[] = [
     {
         accessorKey: "specialty",
         header: "Specialty",
-        cell: ({ row }) => <div className="capitalize">{row.getValue("specialty")}</div>,
+        cell: ({ row }) => <div className="capitalize">{row.getValue("specialty") || 'N/A'}</div>,
     },
     {
-        accessorKey: "status",
-        header: "Status",
-        cell: ({ row }) => {
-             const status = row.getValue("status") as string
-            return <Badge variant={status === "Active" ? "default" : "secondary"}>{status}</Badge>
-        },
+        accessorKey: "telephone",
+        header: "Phone",
+        cell: ({ row }) => <div className="capitalize">{row.getValue("telephone")}</div>,
     },
     {
         id: "actions",
@@ -160,52 +169,84 @@ export const columns: ColumnDef<Doctor>[] = [
 ]
 
 function AddDoctorForm({ onFinished }: { onFinished: () => void }) {
+    const { getAuthToken } = useAuth();
+    const { toast } = useToast();
     const [isLoading, setIsLoading] = React.useState(false);
 
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    const form = useForm<z.infer<typeof doctorSchema>>({
+        resolver: zodResolver(doctorSchema),
+        defaultValues: { role: 'doctor' },
+    });
+
+    async function onSubmit(values: z.infer<typeof doctorSchema>) {
         setIsLoading(true);
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        console.log("Doctor Created");
-        setIsLoading(false);
-        onFinished();
+        try {
+            const token = getAuthToken();
+            const response = await fetch(`${API_BASE_URL}/api/users/create/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(values),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                const errorMessages = Object.values(errorData).flat().join(' ');
+                throw new Error(errorMessages || 'Failed to create doctor.');
+            }
+            
+            toast({ title: 'Success', description: `Doctor account for ${values.first_name} created.` });
+            form.reset({ role: 'doctor' });
+            onFinished();
+
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+            toast({ variant: 'destructive', title: 'Error', description: errorMessage });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
-         <form onSubmit={handleSubmit}>
-            <DialogHeader>
-                <DialogTitle>Add New Doctor</DialogTitle>
-                <DialogDescription>
-                    Fill in the details below to add a new doctor to the system.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">Name</Label>
-                    <Input id="name" placeholder="Dr. John Doe" className="col-span-3" />
+         <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+                <DialogHeader>
+                    <DialogTitle>Add New Doctor</DialogTitle>
+                    <DialogDescription>
+                        Fill in the details below to add a new doctor to the system.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid grid-cols-2 gap-4 py-4">
+                     <FormField control={form.control} name="first_name" render={({ field }) => (
+                        <FormItem><FormLabel>First Name</FormLabel><FormControl><Input placeholder="John" {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                     <FormField control={form.control} name="last_name" render={({ field }) => (
+                        <FormItem><FormLabel>Last Name</FormLabel><FormControl><Input placeholder="Doe" {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="email" render={({ field }) => (
+                        <FormItem className="col-span-2"><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="john.doe@example.com" {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="telephone" render={({ field }) => (
+                        <FormItem><FormLabel>Telephone</FormLabel><FormControl><Input placeholder="+254..." {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="email" className="text-right">Email</Label>
-                    <Input id="email" type="email" placeholder="john.doe@example.com" className="col-span-3" />
-                </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="specialty" className="text-right">Specialty</Label>
-                    <Input id="specialty" placeholder="e.g. Pediatrics" className="col-span-3" />
-                </div>
-            </div>
-            <DialogFooter>
-                <Button type="submit" disabled={isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isLoading ? "Saving..." : "Save Doctor"}
-                </Button>
-            </DialogFooter>
-        </form>
+                <DialogFooter>
+                    <Button type="submit" disabled={isLoading}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isLoading ? "Saving..." : "Save Doctor"}
+                    </Button>
+                </DialogFooter>
+            </form>
+         </Form>
     )
 }
 
 
 function DoctorsPage() {
+    const { getAuthToken, toast } = useToast();
+    const { getAuthToken: getAuth } = useAuth();
     const [data, setData] = React.useState<Doctor[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
     const [sorting, setSorting] = React.useState<SortingState>([])
@@ -213,14 +254,45 @@ function DoctorsPage() {
     const [isFormOpen, setIsFormOpen] = React.useState(false);
 
 
-    React.useEffect(() => {
+    const fetchDoctors = React.useCallback(async () => {
         setIsLoading(true);
-        // Simulate fetching data
-        setTimeout(() => {
-            setData(mockDoctors)
+        // NOTE: The swagger spec does not define an endpoint for LISTING users/doctors.
+        // It only has one for CREATING users (`/api/users/create/`).
+        // I will use the `/api/clinics/staff/` endpoint and filter for doctors by role,
+        // which might not be correct but is the closest available. This should be updated
+        // when a dedicated doctor list endpoint is provided.
+        try {
+            const token = getAuth();
+            const response = await fetch(`${API_BASE_URL}/api/clinics/staff/`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error("Failed to fetch users");
+            const staffData = await response.json();
+            
+            // This is a temporary workaround. Ideally, there is a dedicated doctor endpoint.
+            const doctors = staffData.filter((user: any) => user.position_name.toLowerCase().includes('doctor'))
+                .map((doc: any) => ({
+                    id: doc.staff_id,
+                    email: doc.email,
+                    first_name: doc.first_name,
+                    last_name: doc.last_name,
+                    telephone: doc.telephone,
+                    role: 'doctor',
+                    specialty: 'General'
+                }));
+            setData(doctors);
+
+        } catch (error) {
+             toast({ variant: "destructive", title: "Warning", description: "Could not fetch doctor list. Displaying empty table." });
+             setData([]);
+        } finally {
             setIsLoading(false)
-        }, 1000)
-    }, [])
+        }
+    }, [getAuth, toast]);
+
+    React.useEffect(() => {
+        fetchDoctors();
+    }, [fetchDoctors])
 
     const table = useReactTable({
         data,
@@ -236,6 +308,11 @@ function DoctorsPage() {
             columnFilters,
         },
     })
+    
+    const onFormFinished = () => {
+        setIsFormOpen(false);
+        fetchDoctors();
+    }
 
     return (
         <Card>
@@ -247,9 +324,9 @@ function DoctorsPage() {
                  <div className="flex items-center justify-between pb-4">
                     <Input
                         placeholder="Search by doctor's name..."
-                        value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
+                        value={(table.getColumn("first_name")?.getFilterValue() as string) ?? ""}
                         onChange={(event) =>
-                            table.getColumn("name")?.setFilterValue(event.target.value)
+                            table.getColumn("first_name")?.setFilterValue(event.target.value)
                         }
                         className="max-w-sm"
                     />
@@ -260,7 +337,7 @@ function DoctorsPage() {
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[425px]">
-                            <AddDoctorForm onFinished={() => setIsFormOpen(false)} />
+                            <AddDoctorForm onFinished={onFormFinished} />
                         </DialogContent>
                     </Dialog>
                 </div>
@@ -313,7 +390,7 @@ function DoctorsPage() {
                             ) : (
                                 <TableRow>
                                     <TableCell colSpan={columns.length} className="h-24 text-center">
-                                        No results.
+                                        No doctors found.
                                     </TableCell>
                                 </TableRow>
                             )}

@@ -23,7 +23,7 @@ import { useAuth } from "@/context/auth-context"
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  password: z.string().min(1, { message: "Password is required." }),
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
@@ -44,9 +44,6 @@ export function LoginForm() {
 
   async function onSubmit(data: LoginFormValues) {
     setIsLoading(true)
-    // Mock API call to simulate login
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
     try {
       await login(data.email, data.password)
       toast({
@@ -54,11 +51,13 @@ export function LoginForm() {
         description: "Welcome back!",
       })
       router.push("/dashboard")
+      router.refresh(); // To re-fetch server-side data like navigation
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: "Invalid credentials. Please try again.",
+        description: errorMessage,
       })
     } finally {
       setIsLoading(false)

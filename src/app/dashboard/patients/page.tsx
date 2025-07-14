@@ -4,7 +4,6 @@ import {
     ColumnDef,
     ColumnFiltersState,
     SortingState,
-    VisibilityState,
     flexRender,
     getCoreRowModel,
     getFilteredRowModel,
@@ -59,37 +58,36 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { Badge } from "@/components/ui/badge"
 import { DataTablePagination } from "@/components/ui/data-table-pagination"
 import withAuth from "@/components/auth/with-auth"
+import { useAuth } from "@/context/auth-context"
+import { API_BASE_URL } from "@/lib/config"
 
-const mockPatients = [
-  { id: "pat-1", name: "Alice Johnson", email: "alice@example.com", phone: "+254711111111", lastVisit: "2024-05-10" },
-  { id: "pat-2", name: "Bob Williams", email: "bob@example.com", phone: "+254722222222", lastVisit: "2024-04-22" },
-  { id: "pat-3", name: "Charlie Brown", email: "charlie@example.com", phone: "+254733333333", lastVisit: "2024-05-18" },
-  { id: "pat-4", name: "Diana Miller", email: "diana@example.com", phone: "+254744444444", lastVisit: "2023-12-01" },
-  { id: "pat-5", name: "Ethan Davis", email: "ethan@example.com", phone: "+254755555555", lastVisit: "2024-03-15" },
-];
-
+// Based on API Spec. A patient record in a clinic context.
 export type Patient = {
-  id: string;
-  name: string;
+  patient_id: number;
+  clinic_id: number;
+  clinic_name: string;
+  first_name: string;
+  last_name: string;
   email: string;
-  phone: string;
-  lastVisit: string;
+  telephone: string;
 };
 
+// Schema based on `CreatePatient` from API spec.
 const patientSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
   first_name: z.string().min(1, "First name is required"),
   last_name: z.string().min(1, "Last name is required"),
-  gender: z.enum(["male", "female", "other"], { required_error: "Please select a gender." }),
+  gender: z.enum(["male", "female"], { required_error: "Please select a gender." }),
   telephone: z.string().min(10, "Please enter a valid phone number."),
+  clinic_id: z.number().int().positive().optional(),
 })
 
 function AddPatientForm({ onFinished }: { onFinished: () => void }) {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = React.useState(false)
+  const { user, getAuthToken } = useAuth()
 
   const form = useForm<z.infer<typeof patientSchema>>({
     resolver: zodResolver(patientSchema),
@@ -103,14 +101,33 @@ function AddPatientForm({ onFinished }: { onFinished: () => void }) {
 
   async function onSubmit(values: z.infer<typeof patientSchema>) {
     setIsLoading(true)
-    console.log(values)
-    // Mock API call to create patient
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    toast({ title: "Success", description: `Patient record for ${values.first_name} ${values.last_name} created.` })
-    form.reset()
-    setIsLoading(false)
-    onFinished()
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE_URL}/api/patients/create/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(values)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        // Handle nested errors from Django REST Framework
+        const errorMessages = Object.values(errorData).flat().join(' ');
+        throw new Error(errorMessages || "Failed to create patient.");
+      }
+
+      toast({ title: "Success", description: `Patient record for ${values.first_name} ${values.last_name} created.` })
+      form.reset()
+      onFinished()
+    } catch (error) {
+       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+       toast({ variant: "destructive", title: "Error", description: errorMessage });
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -161,12 +178,20 @@ function AddPatientForm({ onFinished }: { onFinished: () => void }) {
                   <SelectContent>
                     <SelectItem value="male">Male</SelectItem>
                     <SelectItem value="female">Female</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
               </FormItem>
             )} />
+             {user?.role === "doctor" && (
+                <FormField control={form.control} name="clinic_id" render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Clinic ID</FormLabel>
+                    <FormControl><Input type="number" placeholder="Enter Clinic ID" onChange={e => field.onChange(parseInt(e.target.value, 10))} /></FormControl>
+                    <FormMessage />
+                </FormItem>
+                )} />
+            )}
           </div>
           <DialogFooter>
             <Button type="submit" disabled={isLoading}>
@@ -205,7 +230,7 @@ function DeletePatientDialog() {
 
 export const columns: ColumnDef<Patient>[] = [
   {
-    accessorKey: "name",
+    accessorKey: "first_name",
     header: ({ column }) => {
       return (
         <Button
@@ -217,7 +242,7 @@ export const columns: ColumnDef<Patient>[] = [
         </Button>
       )
     },
-    cell: ({ row }) => <div className="lowercase">{row.getValue("name")}</div>,
+    cell: ({ row }) => <div>{`${row.original.first_name} ${row.original.last_name}`}</div>,
   },
   {
     accessorKey: "email",
@@ -225,14 +250,14 @@ export const columns: ColumnDef<Patient>[] = [
     cell: ({ row }) => <div>{row.getValue("email")}</div>,
   },
   {
-    accessorKey: "phone",
+    accessorKey: "telephone",
     header: "Phone",
-    cell: ({ row }) => <div>{row.getValue("phone")}</div>,
+    cell: ({ row }) => <div>{row.getValue("telephone")}</div>,
   },
   {
-    accessorKey: "lastVisit",
-    header: "Last Visit",
-    cell: ({ row }) => <div>{row.getValue("lastVisit")}</div>,
+    accessorKey: "clinic_name",
+    header: "Clinic",
+    cell: ({ row }) => <div>{row.getValue("clinic_name")}</div>,
   },
   {
     id: "actions",
@@ -260,20 +285,31 @@ export const columns: ColumnDef<Patient>[] = [
 ]
 
 function PatientsPage() {
+    const { getAuthToken } = useAuth();
+    const { toast } = useToast();
     const [data, setData] = React.useState<Patient[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
     const [isFormOpen, setIsFormOpen] = React.useState(false);
 
+    const fetchPatients = React.useCallback(async () => {
+        setIsLoading(true);
+        // NOTE: The swagger spec does not define an endpoint to LIST patients.
+        // I'm assuming it might be /api/patients/ or that it's embedded elsewhere.
+        // For now, I will use `/api/clinics/staff/` and filter for patients if any, or show empty.
+        // This should be updated when a real patient list endpoint is available.
+        setData([]); // Default to empty
+        setIsLoading(false);
+        toast({
+            title: "Patient List Notice",
+            description: "No endpoint to list all patients was found. Displaying empty table.",
+        });
+    }, [toast]);
 
     React.useEffect(() => {
-        setIsLoading(true)
-        setTimeout(() => {
-            setData(mockPatients)
-            setIsLoading(false)
-        }, 1000)
-    }, [])
+        fetchPatients()
+    }, [fetchPatients])
 
     const table = useReactTable({
         data,
@@ -289,6 +325,11 @@ function PatientsPage() {
             columnFilters,
         },
     })
+    
+    const onFormFinished = () => {
+        setIsFormOpen(false);
+        fetchPatients();
+    }
 
     return (
         <Card>
@@ -300,9 +341,9 @@ function PatientsPage() {
                 <div className="flex items-center justify-between pb-4">
                     <Input
                         placeholder="Search by patient name..."
-                        value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
+                        value={(table.getColumn("first_name")?.getFilterValue() as string) ?? ""}
                         onChange={(event) =>
-                            table.getColumn("name")?.setFilterValue(event.target.value)
+                            table.getColumn("first_name")?.setFilterValue(event.target.value)
                         }
                         className="max-w-sm"
                     />
@@ -313,7 +354,7 @@ function PatientsPage() {
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-2xl">
-                             <AddPatientForm onFinished={() => setIsFormOpen(false)} />
+                             <AddPatientForm onFinished={onFormFinished} />
                         </DialogContent>
                     </Dialog>
                 </div>
@@ -348,7 +389,7 @@ function PatientsPage() {
                             ) : table.getRowModel().rows?.length ? (
                                 table.getRowModel().rows.map((row) => (
                                     <TableRow
-                                        key={row.id}
+                                        key={row.original.patient_id}
                                         data-state={row.getIsSelected() && "selected"}
                                     >
                                         {row.getVisibleCells().map((cell) => (
@@ -364,7 +405,7 @@ function PatientsPage() {
                             ) : (
                                 <TableRow>
                                     <TableCell colSpan={columns.length} className="h-24 text-center">
-                                        No results.
+                                        No patient data available.
                                     </TableCell>
                                 </TableRow>
                             )}

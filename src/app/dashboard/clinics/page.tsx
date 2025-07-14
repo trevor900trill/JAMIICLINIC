@@ -1,5 +1,8 @@
 "use client"
 import React from "react"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
 import {
     ColumnDef,
     ColumnFiltersState,
@@ -12,12 +15,12 @@ import {
     getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, MoreHorizontal, PlusCircle } from "lucide-react"
+import { MoreHorizontal, PlusCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import {
     DropdownMenu,
-    DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
@@ -34,7 +37,6 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
   DialogContent,
@@ -55,29 +57,42 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 import { DataTablePagination } from "@/components/ui/data-table-pagination"
 import withAuth from "@/components/auth/with-auth"
-import type { UserRole } from "@/context/auth-context"
-
-const mockClinics = [
-    { id: "clinic-1", name: "Good Health Clinic", location: "Nairobi, Kenya", contact: "+254712345678", status: "Active" },
-    { id: "clinic-2", name: "Wellness Center", location: "Mombasa, Kenya", contact: "+254787654321", status: "Active" },
-    { id: "clinic-3", name: "City Medicals", location: "Kisumu, Kenya", contact: "+254722222222", status: "Inactive" },
-    { id: "clinic-4", name: "Coast General", location: "Mombasa, Kenya", contact: "+254733333333", status: "Active" },
-    { id: "clinic-5", name: "Rift Valley Clinic", location: "Nakuru, Kenya", contact: "+254744444444", status: "Inactive" },
-]
+import { useAuth, UserRole } from "@/context/auth-context"
+import { API_BASE_URL } from "@/lib/config"
+import { useToast } from "@/hooks/use-toast"
 
 export type Clinic = {
-    id: string
+    id: number
     name: string
     location: string
-    contact: string
-    status: "Active" | "Inactive"
+    contact_number: string
+    created_at: string
 }
 
-function DeleteClinicDialog() {
+const clinicSchema = z.object({
+  name: z.string().min(1, "Clinic name is required"),
+  location: z.string().min(1, "Location is required"),
+  contact_number: z.string().min(10, "A valid contact number is required"),
+})
+
+function DeleteClinicDialog({ clinicId }: { clinicId: number }) {
+    const { toast } = useToast()
+    const { getAuthToken } = useAuth()
+    const [isDeleting, setIsDeleting] = React.useState(false)
+
+    const handleDelete = async () => {
+        setIsDeleting(true)
+        // Note: The API spec does not have a DELETE endpoint for clinics.
+        // This is a placeholder for when it's available.
+        await new Promise(res => setTimeout(res, 1000));
+        console.log(`Simulating delete for clinic ID: ${clinicId}`)
+        toast({ title: "Success", description: "Clinic has been deleted (simulated)." })
+        setIsDeleting(false)
+    }
+
     return (
         <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -94,7 +109,10 @@ function DeleteClinicDialog() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction>Continue</AlertDialogAction>
+                    <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
+                        {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Continue
+                    </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
@@ -108,22 +126,19 @@ export const columns: ColumnDef<Clinic>[] = [
         cell: ({ row }) => <div className="capitalize">{row.getValue("name")}</div>,
     },
     {
-        accessorKey: "status",
-        header: "Status",
-        cell: ({ row }) => {
-            const status = row.getValue("status") as string
-            return <Badge variant={status === "Active" ? "default" : "secondary"}>{status}</Badge>
-        },
-    },
-    {
         accessorKey: "location",
         header: "Location",
         cell: ({ row }) => <div>{row.getValue("location")}</div>,
     },
     {
-        accessorKey: "contact",
+        accessorKey: "contact_number",
         header: "Contact",
-        cell: ({ row }) => <div>{row.getValue("contact")}</div>,
+        cell: ({ row }) => <div>{row.getValue("contact_number")}</div>,
+    },
+    {
+        accessorKey: "created_at",
+        header: "Created On",
+        cell: ({ row }) => <div>{new Date(row.getValue("created_at")).toLocaleDateString()}</div>,
     },
     {
         id: "actions",
@@ -143,7 +158,7 @@ export const columns: ColumnDef<Clinic>[] = [
                         <DropdownMenuItem>Edit</DropdownMenuItem>
                         <DropdownMenuItem>View Staff</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DeleteClinicDialog />
+                        <DeleteClinicDialog clinicId={clinic.id} />
                     </DropdownMenuContent>
                 </DropdownMenu>
             )
@@ -152,67 +167,124 @@ export const columns: ColumnDef<Clinic>[] = [
 ]
 
 function AddClinicForm({ onFinished }: { onFinished: () => void }) {
+    const { getAuthToken } = useAuth()
+    const { toast } = useToast()
     const [isLoading, setIsLoading] = React.useState(false);
+    
+    const form = useForm<z.infer<typeof clinicSchema>>({
+        resolver: zodResolver(clinicSchema),
+        defaultValues: { name: "", location: "", contact_number: "" },
+    })
 
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    async function onSubmit(values: z.infer<typeof clinicSchema>) {
         setIsLoading(true);
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        console.log("Clinic Created");
-        setIsLoading(false);
-        onFinished();
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/clinics/create/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${getAuthToken()}`
+                },
+                body: JSON.stringify(values)
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || "Failed to create clinic.")
+            }
+            
+            toast({ title: "Success", description: "Clinic created successfully." })
+            form.reset();
+            onFinished();
+
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+            toast({ variant: "destructive", title: "Error", description: errorMessage })
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
-        <form onSubmit={handleSubmit}>
-            <DialogHeader>
-                <DialogTitle>Add New Clinic</DialogTitle>
-                <DialogDescription>
-                    Fill in the details below to add a new clinic location.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">Name</Label>
-                    <Input id="name" placeholder="Sunshine Clinic" className="col-span-3" />
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+                <DialogHeader>
+                    <DialogTitle>Add New Clinic</DialogTitle>
+                    <DialogDescription>
+                        Fill in the details below to add a new clinic location.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <FormField control={form.control} name="name" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Name</FormLabel>
+                            <FormControl><Input placeholder="Sunshine Clinic" {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    <FormField control={form.control} name="location" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Location</FormLabel>
+                            <FormControl><Input placeholder="Nairobi, Kenya" {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                     <FormField control={form.control} name="contact_number" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Contact Number</FormLabel>
+                            <FormControl><Input placeholder="+254700000000" {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="location" className="text-right">Location</Label>
-                    <Input id="location" placeholder="Nairobi, Kenya" className="col-span-3" />
-                </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="contact" className="text-right">Contact</Label>
-                    <Input id="contact" placeholder="+254700000000" className="col-span-3" />
-                </div>
-            </div>
-            <DialogFooter>
-                <Button type="submit" disabled={isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isLoading ? "Saving..." : "Save Clinic"}
-                </Button>
-            </DialogFooter>
-        </form>
+                <DialogFooter>
+                    <Button type="submit" disabled={isLoading}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isLoading ? "Saving..." : "Save Clinic"}
+                    </Button>
+                </DialogFooter>
+            </form>
+        </Form>
     )
 }
 
 function ClinicsPage() {
+    const { getAuthToken } = useAuth()
+    const { toast } = useToast()
     const [data, setData] = React.useState<Clinic[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-    const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
     const [isFormOpen, setIsFormOpen] = React.useState(false);
 
 
+    const fetchClinics = React.useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const token = getAuthToken();
+            if (!token) {
+                toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in." });
+                return;
+            }
+            const response = await fetch(`${API_BASE_URL}/api/clinics/`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to fetch clinics.");
+            }
+            const clinics = await response.json();
+            setData(clinics);
+        } catch (error) {
+            toast({ variant: "destructive", title: "Error", description: "Could not fetch clinic data." });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [getAuthToken, toast]);
+
     React.useEffect(() => {
-        setIsLoading(true)
-        // Simulate fetching data
-        setTimeout(() => {
-            setData(mockClinics)
-            setIsLoading(false)
-        }, 1000)
-    }, [])
+        fetchClinics();
+    }, [fetchClinics])
 
     const table = useReactTable({
         data,
@@ -223,13 +295,16 @@ function ClinicsPage() {
         getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
-        onColumnVisibilityChange: setColumnVisibility,
         state: {
             sorting,
             columnFilters,
-            columnVisibility,
         },
     })
+    
+    const onFormFinished = () => {
+        setIsFormOpen(false);
+        fetchClinics(); // Refresh data after adding a new clinic
+    }
 
     return (
         <Card>
@@ -254,7 +329,7 @@ function ClinicsPage() {
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[425px]">
-                            <AddClinicForm onFinished={() => setIsFormOpen(false)} />
+                            <AddClinicForm onFinished={onFormFinished} />
                         </DialogContent>
                     </Dialog>
                 </div>
