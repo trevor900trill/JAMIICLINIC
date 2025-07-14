@@ -74,8 +74,8 @@ function DashboardPage() {
           </Card>
         ))}
       </div>
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+      <div className="grid grid-cols-1 gap-8">
+        <Card className="col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><BarChart2 className="h-5 w-5" /> Patient Volume</CardTitle>
             <CardDescription>Monthly patient visits for the last 6 months.</CardDescription>
@@ -105,6 +105,7 @@ function DashboardPage() {
             </ChartContainer>
           </CardContent>
         </Card>
+        {/*
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" /> Recent Appointments</CardTitle>
@@ -126,6 +127,7 @@ function DashboardPage() {
             ))}
           </CardContent>
         </Card>
+        */}
       </div>
     </div>
   )
