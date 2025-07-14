@@ -304,7 +304,7 @@ function ClinicsPage() {
                 <CardTitle>Clinics</CardTitle>
                 <CardDescription>Manage your clinic locations and their details.</CardDescription>
             </CardHeader>
-            <CardContent className="overflow-x-hidden">
+            <CardContent>
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pb-4">
                     <Input
                         placeholder="Search clinics..."

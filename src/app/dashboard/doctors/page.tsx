@@ -318,7 +318,7 @@ function DoctorsPage() {
                 <CardTitle>Doctors</CardTitle>
                 <CardDescription>Manage all doctors in the system.</CardDescription>
             </CardHeader>
-            <CardContent className="overflow-x-hidden">
+            <CardContent>
                  <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pb-4">
                     <Input
                         placeholder="Search by doctor's name..."
