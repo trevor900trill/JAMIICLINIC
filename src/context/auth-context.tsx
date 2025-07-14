@@ -22,9 +22,9 @@ export interface User {
   role: UserRole;
   avatarUrl: string;
   reset_initial_password?: boolean;
-  specialty_set?: boolean; // Doctor onboarding
-  clinic_created?: boolean;  // Doctor onboarding
-  staff_created?: boolean;   // Doctor onboarding
+  specialty_set?: boolean;
+  clinic_created?: boolean;
+  staff_created?: boolean;
 }
 
 interface AuthContextType {
@@ -97,7 +97,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
   
   const skipOnboardingStep = async (step: 'clinic_created' | 'staff_created') => {
-      await refreshUser({ [step]: true });
+    await refreshUser({ [step]: true });
+    // After skipping, we need to manually trigger the next routing check
+    // The withAuth HOC will handle the actual redirect.
+    // A simple refresh or a programmatic push can work.
+    router.push('/dashboard'); 
   }
 
   const login = async (email: string, pass: string): Promise<void> => {
@@ -124,7 +128,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             role: decodedUser.role,
             avatarUrl: `https://placehold.co/32x32.png`,
             reset_initial_password: reset_initial_password,
-            // Initialize doctor onboarding state from API or default to false
             specialty_set: specialty_set || false,
             clinic_created: clinic_created || false,
             staff_created: staff_created || false,
@@ -133,10 +136,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(currentUser);
         saveStateToStorage(currentUser, token);
         
-        if (reset_initial_password) {
+        // Corrected redirection logic
+        if (currentUser.reset_initial_password) {
             router.push('/change-password');
         } else if (currentUser.role === 'doctor' && !currentUser.specialty_set) {
             router.push('/set-specialty');
+        } else if (currentUser.role === 'doctor' && !currentUser.clinic_created) {
+            router.push('/onboarding/create-clinic');
+        } else if (currentUser.role === 'doctor' && !currentUser.staff_created) {
+            router.push('/onboarding/create-staff');
         } else {
             router.push('/dashboard');
         }
