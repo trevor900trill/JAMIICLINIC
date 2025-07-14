@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from "react"
@@ -5,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { useRouter } from "next/navigation"
-import { Loader2 } from "lucide-react"
+import { Loader2, KeyRound } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -34,7 +35,7 @@ type PasswordFormValues = z.infer<typeof passwordSchema>
 
 export default function ChangePasswordPage() {
   const router = useRouter()
-  const { getAuthToken, logout } = useAuth()
+  const { user, getAuthToken, logout, refreshUser } = useAuth()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = React.useState(false)
 
@@ -67,15 +68,21 @@ export default function ChangePasswordPage() {
         const errorMessage = Object.values(errorData).flat().join(' ')
         throw new Error(errorMessage || 'Failed to change password.');
       }
+
+      await refreshUser({ reset_initial_password: false });
       
       toast({
         title: "Password Changed Successfully",
-        description: "Please log in again with your new password.",
+        description: "Your password has been updated.",
       })
-
-      // Log the user out and redirect to login page
-      logout()
-      router.push("/")
+      
+      if (user?.role === 'doctor') {
+        router.push("/dashboard/set-specialty");
+      } else {
+        // Log out other roles and redirect to login
+        logout()
+        router.push("/")
+      }
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
@@ -90,14 +97,17 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <div className="flex items-center justify-center h-full">
+    <div className="flex items-center justify-center h-full bg-muted/40">
       <Card className="w-full max-w-md">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardHeader>
-                <CardTitle>Change Your Password</CardTitle>
-                <CardDescription>
-                    For your security, you must set a new password before you can continue.
+                <div className="flex justify-center pb-4">
+                    <KeyRound className="h-10 w-10 text-primary" />
+                </div>
+                <CardTitle className="text-center">Create a New Password</CardTitle>
+                <CardDescription className="text-center">
+                    For your security, you must set a new password to continue.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

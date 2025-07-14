@@ -54,7 +54,7 @@ export default function SetSpecialtyPage() {
         },
         body: JSON.stringify({
             specialty: data.specialty,
-            email: user?.email // Admins can set for others, but here doctors set for themselves.
+            email: user?.email
         }),
       });
 
@@ -66,12 +66,11 @@ export default function SetSpecialtyPage() {
       
       toast({
         title: "Specialty Set Successfully",
-        description: "You can now access the dashboard.",
+        description: "Let's set up your first clinic.",
       })
       
-      // Refresh user context to get the new specialty and clear the onboarding flag
-      await refreshUser()
-      router.push("/dashboard")
+      await refreshUser({ specialty_set: true });
+      router.push("/dashboard/onboarding/create-clinic")
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
@@ -86,7 +85,7 @@ export default function SetSpecialtyPage() {
   }
 
   return (
-    <div className="flex items-center justify-center h-full">
+    <div className="flex items-center justify-center h-full bg-muted/40">
       <Card className="w-full max-w-md">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -96,7 +95,7 @@ export default function SetSpecialtyPage() {
                 </div>
                 <CardTitle className="text-center">Set Your Specialty</CardTitle>
                 <CardDescription className="text-center">
-                    Please specify your medical specialty to complete your profile setup.
+                    To get started, please specify your medical specialty to complete your profile.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

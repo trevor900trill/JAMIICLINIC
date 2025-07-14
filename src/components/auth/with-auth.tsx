@@ -25,9 +25,11 @@ const withAuth = <P extends object>(
         router.replace('/');
         return;
       }
+      
+      const isDoctorOnboarding = user.role === 'doctor' && (user.reset_initial_password || !user.specialty_set || !user.clinic_created);
 
       // --- Onboarding Flow ---
-      // 1. Force password change if required
+      // 1. Force password change if required (all roles)
       if (user.reset_initial_password) {
         if (pathname !== '/dashboard/change-password') {
           router.replace('/dashboard/change-password');
@@ -35,12 +37,32 @@ const withAuth = <P extends object>(
         return; // Block further checks until password is changed
       }
       
-      // NOTE: Specialty check is removed as we cannot verify it without a /me endpoint.
-      // We can re-add this later.
+      // 2. Force specialty set for doctors
+      if (user.role === 'doctor' && !user.specialty_set) {
+        if (pathname !== '/dashboard/set-specialty') {
+          router.replace('/dashboard/set-specialty');
+        }
+        return;
+      }
+
+      // 3. Force clinic creation for doctors
+      if (user.role === 'doctor' && user.specialty_set && !user.clinic_created) {
+         if (pathname !== '/dashboard/onboarding/create-clinic' && pathname !== '/dashboard/onboarding/create-staff') {
+           router.replace('/dashboard/onboarding/create-clinic');
+         }
+         return;
+      }
 
       // --- Post-Onboarding Redirects ---
       // If user is on an onboarding page but doesn't need to be, redirect to dashboard
-      if (!user.reset_initial_password && pathname === '/dashboard/change-password') {
+      const onboardingRoutes = [
+        '/dashboard/change-password',
+        '/dashboard/set-specialty',
+        '/dashboard/onboarding/create-clinic',
+        '/dashboard/onboarding/create-staff'
+      ];
+
+      if (!isDoctorOnboarding && onboardingRoutes.includes(pathname)) {
           router.replace('/dashboard');
           return;
       }
@@ -64,10 +86,13 @@ const withAuth = <P extends object>(
     }
     
     // --- Prevent rendering if a redirect is imminent ---
-    if (user.reset_initial_password && pathname !== '/dashboard/change-password') {
-      return null;
-    }
-    if (requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
+    const isRedirecting = 
+        (user.reset_initial_password && pathname !== '/dashboard/change-password') ||
+        (user.role === 'doctor' && !user.specialty_set && pathname !== '/dashboard/set-specialty') ||
+        (user.role === 'doctor' && user.specialty_set && !user.clinic_created && !pathname.startsWith('/dashboard/onboarding')) ||
+        (requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role));
+
+    if (isRedirecting) {
        return null; 
     }
 

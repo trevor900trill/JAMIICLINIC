@@ -2,11 +2,23 @@
 import type { PropsWithChildren } from 'react'
 import { SidebarNav } from '@/components/dashboard/sidebar-nav'
 import { Header } from '@/components/dashboard/header'
+import { useAuth } from '@/context/auth-context'
 
 export default function DashboardLayout({ children }: PropsWithChildren) {
-  // The redirection logic has been removed from here as it's already
-  // correctly handled in the withAuth HOC, and calling server-side
-  // functions like `redirect` is not allowed in a "use client" component.
+  const { user } = useAuth();
+  
+  // Conditionally render layout for onboarding flow
+  const isOnboarding = user?.role === 'doctor' && (user.reset_initial_password || !user.specialty_set);
+
+  if (isOnboarding) {
+    return (
+      <div className="flex min-h-screen w-full flex-col">
+        <main className="flex-1">
+          {children}
+        </main>
+      </div>
+    )
+  }
 
   return (
       <div className="flex min-h-screen w-full flex-col bg-muted/40">
