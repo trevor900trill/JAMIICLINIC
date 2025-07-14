@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, Stethoscope } from "lucide-react"
-import { API_BASE_URL } from '@/lib/config'
+import { useApi } from '@/hooks/use-api'
 
 const specialtySchema = z.object({
   specialty: z.string().min(2, "Specialty is required."),
@@ -31,7 +31,8 @@ type SpecialtyFormValues = z.infer<typeof specialtySchema>
 export default function SetSpecialtyPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const { user, getAuthToken, refreshUser, logout } = useAuth()
+  const { user, refreshUser, logout } = useAuth()
+  const { apiFetch } = useApi()
   const [isLoading, setIsLoading] = React.useState(false)
 
   const form = useForm<SpecialtyFormValues>({
@@ -55,13 +56,8 @@ export default function SetSpecialtyPage() {
         return;
     }
     try {
-        const token = getAuthToken();
-        const response = await fetch(`${API_BASE_URL}/api/doctor/set-specialty/`, {
+        const response = await apiFetch('/api/doctor/set-specialty/', {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
             body: JSON.stringify({ 
               specialty: data.specialty,
               email: user.email
@@ -80,6 +76,7 @@ export default function SetSpecialtyPage() {
         router.push('/onboarding/create-clinic');
 
     } catch (error) {
+      if (error instanceof Error && error.message === "Unauthorized") return;
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred."
       toast({ variant: "destructive", title: "Error", description: errorMessage })
       setIsLoading(false)

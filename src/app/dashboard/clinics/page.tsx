@@ -61,8 +61,8 @@ import {
 import { Loader2 } from "lucide-react"
 import { DataTablePagination } from "@/components/ui/data-table-pagination"
 import { useAuth, UserRole } from "@/context/auth-context"
-import { API_BASE_URL } from "@/lib/config"
 import { useToast } from "@/hooks/use-toast"
+import { useApi } from "@/hooks/use-api"
 
 export type Clinic = {
     id: number
@@ -80,7 +80,7 @@ const clinicSchema = z.object({
 
 function DeleteClinicDialog({ clinicId }: { clinicId: number }) {
     const { toast } = useToast()
-    const { getAuthToken } = useAuth()
+    const { apiFetch } = useApi()
     const [isDeleting, setIsDeleting] = React.useState(false)
 
     const handleDelete = async () => {
@@ -167,7 +167,7 @@ export const columns: ColumnDef<Clinic>[] = [
 ]
 
 function AddClinicForm({ onFinished }: { onFinished: () => void }) {
-    const { getAuthToken } = useAuth()
+    const { apiFetch } = useApi()
     const { toast } = useToast()
     const [isLoading, setIsLoading] = React.useState(false);
     
@@ -179,12 +179,8 @@ function AddClinicForm({ onFinished }: { onFinished: () => void }) {
     async function onSubmit(values: z.infer<typeof clinicSchema>) {
         setIsLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/clinics/create/`, {
+            const response = await apiFetch('/api/clinics/create/', {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${getAuthToken()}`
-                },
                 body: JSON.stringify(values)
             })
 
@@ -198,6 +194,7 @@ function AddClinicForm({ onFinished }: { onFinished: () => void }) {
             onFinished();
 
         } catch (error) {
+            if (error instanceof Error && error.message === "Unauthorized") return;
             const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
             toast({ variant: "destructive", title: "Error", description: errorMessage })
         } finally {
@@ -249,7 +246,8 @@ function AddClinicForm({ onFinished }: { onFinished: () => void }) {
 }
 
 function ClinicsPage() {
-    const { user, getAuthToken } = useAuth()
+    const { user } = useAuth()
+    const { apiFetch } = useApi()
     const { toast } = useToast()
     const [data, setData] = React.useState<Clinic[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
@@ -261,14 +259,7 @@ function ClinicsPage() {
     const fetchClinics = React.useCallback(async () => {
         setIsLoading(true);
         try {
-            const token = getAuthToken();
-            if (!token) {
-                toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in." });
-                return;
-            }
-            const response = await fetch(`${API_BASE_URL}/api/clinics/`, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
+            const response = await apiFetch('/api/clinics/');
 
             if (!response.ok) {
                 throw new Error("Failed to fetch clinics.");
@@ -276,11 +267,12 @@ function ClinicsPage() {
             const clinics = await response.json();
             setData(clinics);
         } catch (error) {
+            if (error instanceof Error && error.message === "Unauthorized") return;
             toast({ variant: "destructive", title: "Error", description: "Could not fetch clinic data." });
         } finally {
             setIsLoading(false);
         }
-    }, [getAuthToken, toast]);
+    }, [apiFetch, toast]);
 
     React.useEffect(() => {
         fetchClinics();

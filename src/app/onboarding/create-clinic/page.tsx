@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, Building } from "lucide-react"
-import { API_BASE_URL } from '@/lib/config'
+import { useApi } from '@/hooks/use-api'
 
 const clinicSchema = z.object({
   name: z.string().min(1, "Clinic name is required"),
@@ -33,7 +33,8 @@ type ClinicFormValues = z.infer<typeof clinicSchema>
 export default function CreateClinicPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const { user, getAuthToken, refreshUser } = useAuth()
+  const { user, refreshUser } = useAuth()
+  const { apiFetch } = useApi()
   const [isLoading, setIsLoading] = React.useState(false)
 
   const form = useForm<ClinicFormValues>({
@@ -50,13 +51,8 @@ export default function CreateClinicPage() {
   async function onSubmit(values: ClinicFormValues) {
     setIsLoading(true)
     try {
-        const token = getAuthToken();
-        const response = await fetch(`${API_BASE_URL}/api/clinics/create/`, {
+        const response = await apiFetch('/api/clinics/create/', {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
             body: JSON.stringify(values),
         })
 
@@ -72,6 +68,7 @@ export default function CreateClinicPage() {
         router.push('/onboarding/create-staff');
 
     } catch (error) {
+      if (error instanceof Error && error.message === "Unauthorized") return;
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred."
       toast({ variant: "destructive", title: "Error", description: errorMessage })
       setIsLoading(false)

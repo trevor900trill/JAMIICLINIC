@@ -63,7 +63,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DataTablePagination } from "@/components/ui/data-table-pagination"
 import { useAuth, UserRole } from "@/context/auth-context"
 import { useToast } from "@/hooks/use-toast"
-import { API_BASE_URL } from "@/lib/config"
+import { useApi } from "@/hooks/use-api"
 
 export type Staff = {
     staff_id: number;
@@ -168,7 +168,7 @@ export const columns: ColumnDef<Staff>[] = [
 
 function AddUserForm({ onFinished }: { onFinished: () => void }) {
     const [isLoading, setIsLoading] = React.useState(false);
-    const { getAuthToken } = useAuth();
+    const { apiFetch } = useApi();
     const { toast } = useToast();
     
     const form = useForm<z.infer<typeof staffSchema>>({
@@ -179,13 +179,8 @@ function AddUserForm({ onFinished }: { onFinished: () => void }) {
     async function onSubmit(values: z.infer<typeof staffSchema>) {
         setIsLoading(true);
          try {
-            const token = getAuthToken();
-            const response = await fetch(`${API_BASE_URL}/api/doctor/create-staff/`, {
+            const response = await apiFetch('/api/doctor/create-staff/', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify(values)
             });
 
@@ -200,6 +195,7 @@ function AddUserForm({ onFinished }: { onFinished: () => void }) {
             onFinished();
 
         } catch (error) {
+            if (error instanceof Error && error.message === "Unauthorized") return;
             const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
             toast({ variant: "destructive", title: "Error", description: errorMessage });
         } finally {
@@ -252,7 +248,8 @@ function AddUserForm({ onFinished }: { onFinished: () => void }) {
 
 
 function UsersPage() {
-    const { user, getAuthToken } = useAuth();
+    const { user } = useAuth();
+    const { apiFetch } = useApi();
     const { toast } = useToast();
     const [data, setData] = React.useState<Staff[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
@@ -263,19 +260,17 @@ function UsersPage() {
     const fetchStaff = React.useCallback(async () => {
         setIsLoading(true);
         try {
-            const token = getAuthToken();
-            const response = await fetch(`${API_BASE_URL}/api/clinics/staff/`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await apiFetch('/api/clinics/staff/');
             if (!response.ok) throw new Error("Failed to fetch staff");
             const staffData = await response.json();
             setData(staffData);
         } catch (error) {
+            if (error instanceof Error && error.message === "Unauthorized") return;
             toast({ variant: "destructive", title: "Error", description: "Could not fetch staff data." });
         } finally {
             setIsLoading(false);
         }
-    }, [getAuthToken, toast]);
+    }, [apiFetch, toast]);
 
     React.useEffect(() => {
         fetchStaff();

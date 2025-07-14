@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, Users } from "lucide-react"
+import { useApi } from '@/hooks/use-api'
 import { API_BASE_URL } from '@/lib/config'
 
 const staffSchema = z.object({
@@ -44,7 +45,8 @@ type StaffFormValues = z.infer<typeof staffSchema>
 export default function CreateStaffPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const { user, getAuthToken, refreshUser } = useAuth()
+  const { user, refreshUser } = useAuth()
+  const { apiFetch } = useApi()
   const [isLoading, setIsLoading] = React.useState(false)
   const [clinics, setClinics] = React.useState<{id: number, name: string}[]>([])
 
@@ -52,21 +54,19 @@ export default function CreateStaffPage() {
     async function fetchClinics() {
         if (user?.role !== 'doctor') return;
         try {
-            const token = getAuthToken();
-            const response = await fetch(`${API_BASE_URL}/api/clinics/`, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
+            const response = await apiFetch('/api/clinics/');
             if (!response.ok) {
                 throw new Error("Could not fetch clinics.");
             }
             const clinicData = await response.json();
             setClinics(clinicData);
         } catch (error) {
+            if (error instanceof Error && error.message === "Unauthorized") return;
             toast({ variant: "destructive", title: "Error", description: "Could not load your clinics." });
         }
     }
     fetchClinics();
-  }, [user, getAuthToken, toast]);
+  }, [user, apiFetch, toast]);
 
   const form = useForm<StaffFormValues>({
     resolver: zodResolver(staffSchema),
@@ -76,7 +76,8 @@ export default function CreateStaffPage() {
       last_name: "", 
       telephone: "",
       position: "",
-      clinic_id: undefined
+      clinic_id: undefined,
+      gender: undefined,
     }
   })
 
@@ -89,13 +90,8 @@ export default function CreateStaffPage() {
   async function onSubmit(values: StaffFormValues) {
     setIsLoading(true)
     try {
-        const token = getAuthToken();
-        const response = await fetch(`${API_BASE_URL}/api/doctor/create-staff/`, {
+        const response = await apiFetch('/api/doctor/create-staff/', {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
             body: JSON.stringify(values),
         })
 
@@ -112,6 +108,7 @@ export default function CreateStaffPage() {
         router.push('/dashboard');
 
     } catch (error) {
+      if (error instanceof Error && error.message === "Unauthorized") return;
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred."
       toast({ variant: "destructive", title: "Error", description: errorMessage })
       setIsLoading(false);

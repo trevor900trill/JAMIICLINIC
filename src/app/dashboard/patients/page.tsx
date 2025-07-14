@@ -61,7 +61,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast"
 import { DataTablePagination } from "@/components/ui/data-table-pagination"
 import { useAuth } from "@/context/auth-context"
-import { API_BASE_URL } from "@/lib/config"
+import { useApi } from "@/hooks/use-api"
 
 // Based on API Spec. A patient record in a clinic context.
 export type Patient = {
@@ -87,7 +87,8 @@ const patientSchema = z.object({
 function AddPatientForm({ onFinished }: { onFinished: () => void }) {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = React.useState(false)
-  const { user, getAuthToken } = useAuth()
+  const { user } = useAuth()
+  const { apiFetch } = useApi()
 
   const form = useForm<z.infer<typeof patientSchema>>({
     resolver: zodResolver(patientSchema),
@@ -102,13 +103,8 @@ function AddPatientForm({ onFinished }: { onFinished: () => void }) {
   async function onSubmit(values: z.infer<typeof patientSchema>) {
     setIsLoading(true)
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_BASE_URL}/api/patients/create/`, {
+      const response = await apiFetch('/api/patients/create/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify(values)
       });
 
@@ -123,6 +119,7 @@ function AddPatientForm({ onFinished }: { onFinished: () => void }) {
       form.reset()
       onFinished()
     } catch (error) {
+       if (error instanceof Error && error.message === "Unauthorized") return;
        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
        toast({ variant: "destructive", title: "Error", description: errorMessage });
     } finally {
@@ -285,7 +282,7 @@ export const columns: ColumnDef<Patient>[] = [
 ]
 
 function PatientsPage() {
-    const { getAuthToken } = useAuth();
+    const { apiFetch } = useApi();
     const { toast } = useToast();
     const [data, setData] = React.useState<Patient[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
