@@ -7,13 +7,13 @@ import { useAuth } from '@/context/auth-context'
 export default function DashboardLayout({ children }: PropsWithChildren) {
   const { user } = useAuth();
   
-  // Conditionally render layout for onboarding flow
-  const isOnboarding = user?.role === 'doctor' && (user.reset_initial_password || !user.specialty_set);
+  const needsOnboarding = user?.reset_initial_password || 
+                          (user?.role === 'doctor' && (!user.specialty_set || !user.clinic_created));
 
-  if (isOnboarding) {
+  if (needsOnboarding) {
     return (
-      <div className="flex min-h-screen w-full flex-col">
-        <main className="flex-1">
+      <div className="flex min-h-screen w-full flex-col bg-muted/40">
+        <main className="flex flex-1 items-center justify-center">
           {children}
         </main>
       </div>

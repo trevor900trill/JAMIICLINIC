@@ -26,60 +26,42 @@ const withAuth = <P extends object>(
         return;
       }
       
-      // --- Onboarding Flow ---
-      // This is a sequential check. The first condition that is true will trigger a redirect and stop further checks.
-
-      // 1. Force password change if required (highest priority)
-      if (user.reset_initial_password) {
-        if (pathname !== '/dashboard/change-password') {
-          router.replace('/dashboard/change-password');
-        }
-        return; // Block further checks until password is changed
-      }
-      
-      // 2. Force specialty set for doctors (only if password is not required to be reset)
-      if (user.role === 'doctor' && !user.specialty_set) {
-        if (pathname !== '/dashboard/set-specialty') {
-          router.replace('/dashboard/set-specialty');
-        }
-        return;
-      }
-
-      // 3. Force clinic creation for doctors (only after specialty is set)
-      if (user.role === 'doctor' && user.specialty_set && !user.clinic_created) {
-         if (pathname !== '/onboarding/create-clinic' && pathname !== '/onboarding/create-staff') {
-           router.replace('/onboarding/create-clinic');
-         }
-         return;
-      }
-
-      // --- Post-Onboarding Redirects ---
-      // If user is on an onboarding page but doesn't need to be, redirect to dashboard
-      const onboardingRoutes = [
+      const isOnboardingRoute = [
         '/dashboard/change-password',
         '/dashboard/set-specialty',
         '/onboarding/create-clinic',
         '/onboarding/create-staff'
-      ];
-      
-      const isOnboardingRoute = onboardingRoutes.includes(pathname);
-      const needsOnboarding = user.reset_initial_password || (user.role === 'doctor' && (!user.specialty_set || !user.clinic_created));
+      ].includes(pathname);
 
-      if (isOnboardingRoute && !needsOnboarding) {
-          router.replace('/dashboard');
-          return;
-      }
-      
-      // --- Role-based Access Control ---
-      if (requiredRoles && requiredRoles.length > 0) {
-        const hasRequiredRole = requiredRoles.includes(user.role);
-        if (!hasRequiredRole) {
-          router.replace('/not-found');
+      // --- Onboarding Flow ---
+      // The checks are now in a strict, sequential if/else if structure to enforce order.
+
+      // 1. Force password change (highest priority)
+      if (user.reset_initial_password) {
+        if (pathname !== '/dashboard/change-password') {
+          router.replace('/dashboard/change-password');
         }
+      // 2. Force specialty set for doctors
+      } else if (user.role === 'doctor' && !user.specialty_set) {
+        if (pathname !== '/dashboard/set-specialty') {
+          router.replace('/dashboard/set-specialty');
+        }
+      // 3. Force clinic creation for doctors
+      } else if (user.role === 'doctor' && !user.clinic_created) {
+         if (pathname !== '/onboarding/create-clinic' && pathname !== '/onboarding/create-staff') {
+           router.replace('/onboarding/create-clinic');
+         }
+      // 4. Role-based Access Control
+      } else if (requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
+        router.replace('/not-found');
+      // 5. If user is on an onboarding route but has completed onboarding, redirect to dashboard.
+      } else if (isOnboardingRoute) {
+        router.replace('/dashboard');
       }
-    }, [user, isLoading, router, requiredRoles, pathname]);
 
-    // Show a loader while authentication state is resolving
+    }, [user, isLoading, router, pathname, requiredRoles]);
+
+    // Show a loader while authentication state is resolving or if a redirect is imminent.
     if (isLoading || !user) {
       return (
         <div className="flex h-screen items-center justify-center">
@@ -88,24 +70,20 @@ const withAuth = <P extends object>(
       );
     }
     
-    // --- Prevent rendering if a redirect is imminent ---
-    let isRedirecting = false;
+    // --- Prevent rendering if a redirect is imminent to avoid content flashing ---
     if (user) {
-        isRedirecting = 
-            (user.reset_initial_password && pathname !== '/dashboard/change-password') ||
-            (!user.reset_initial_password && user.role === 'doctor' && !user.specialty_set && pathname !== '/dashboard/set-specialty') ||
-            (!user.reset_initial_password && user.role === 'doctor' && user.specialty_set && !user.clinic_created && !pathname.startsWith('/onboarding')) ||
-            (requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role));
-    }
+      const needsPasswordChange = user.reset_initial_password && pathname !== '/dashboard/change-password';
+      const needsSpecialty = !user.reset_initial_password && user.role === 'doctor' && !user.specialty_set && pathname !== '/dashboard/set-specialty';
+      const needsClinicCreation = !user.reset_initial_password && user.role === 'doctor' && user.specialty_set && !user.clinic_created && !pathname.startsWith('/onboarding');
+      const wrongRole = requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role);
 
-
-    if (isRedirecting) {
-       // Render a loader during the redirect to avoid flashing content
-       return (
-         <div className="flex h-screen items-center justify-center">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-       ); 
+      if (needsPasswordChange || needsSpecialty || needsClinicCreation || wrongRole) {
+        return (
+          <div className="flex h-screen items-center justify-center">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+        ); 
+      }
     }
 
     return <WrappedComponent {...props} />;
