@@ -299,7 +299,7 @@ function ClinicsPage() {
     }
 
     return (
-        <Card>
+        <Card className="overflow-hidden">
             <CardHeader>
                 <CardTitle>Clinics</CardTitle>
                 <CardDescription>Manage your clinic locations and their details.</CardDescription>

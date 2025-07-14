@@ -302,7 +302,7 @@ function PatientsPage() {
             title: "Patient List Notice",
             description: "No endpoint to list all patients was found. Displaying empty table.",
         });
-    }, [toast]);
+    }, [toast, apiFetch]);
 
     React.useEffect(() => {
         fetchPatients()
@@ -329,7 +329,7 @@ function PatientsPage() {
     }
 
     return (
-        <Card>
+        <Card className="overflow-hidden">
             <CardHeader>
                 <CardTitle>Patients</CardTitle>
                 <CardDescription>View and manage patient records.</CardDescription>

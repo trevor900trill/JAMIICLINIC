@@ -313,7 +313,7 @@ function DoctorsPage() {
     }
 
     return (
-        <Card>
+        <Card className="overflow-hidden">
             <CardHeader>
                 <CardTitle>Doctors</CardTitle>
                 <CardDescription>Manage all doctors in the system.</CardDescription>

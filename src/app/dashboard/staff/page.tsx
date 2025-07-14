@@ -297,7 +297,7 @@ function UsersPage() {
     }
 
     return (
-        <Card>
+        <Card className="overflow-hidden">
             <CardHeader>
                 <CardTitle>Staff</CardTitle>
                 <CardDescription>Manage all staff accounts in the system.</CardDescription>
