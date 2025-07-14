@@ -86,7 +86,7 @@ export function Header() {
           <Button variant="outline" size="icon" className="overflow-hidden rounded-full">
             <Avatar>
               <AvatarImage src={user.avatarUrl} alt="User avatar" data-ai-hint="person portrait" />
-              <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+              <AvatarFallback>{user.name ? user.name.split(' ').map(n => n[0]).join('') : 'U'}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
