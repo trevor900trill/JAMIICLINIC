@@ -87,52 +87,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
     const isOnboardingRoute = ONBOARDING_ROUTES.includes(pathname);
-
-    // If user is not logged in, redirect to login page from any other page
-    if (!user) {
-      if (!isPublicRoute) {
-        router.replace('/');
-      }
+    
+    // If no user, redirect to login from any protected route
+    if (!user && !isPublicRoute) {
+      router.replace('/');
       return;
     }
 
-    // --- User is logged in, handle redirects ---
-
-    // 1. Mandatory password change (HIGHEST PRIORITY)
-    if (user.reset_initial_password) {
-      if (pathname !== '/change-password') {
+    if (user) {
+      // HIGHEST PRIORITY: If password change is required, force it.
+      if (user.reset_initial_password && pathname !== '/change-password') {
         router.replace('/change-password');
+        return;
       }
-      return; // Stop further checks
-    }
 
-    // 2. Doctor-specific onboarding: set specialty
-    if (user.role === 'doctor' && !user.specialty_set) {
-      if (pathname !== '/set-specialty') {
-        router.replace('/set-specialty');
+      // If user is fully onboarded and on a public or onboarding page, redirect to dashboard.
+      if (!user.reset_initial_password && (isPublicRoute || isOnboardingRoute)) {
+        if (pathname !== '/dashboard') {
+            router.replace('/dashboard');
+        }
       }
-      return; // Stop further checks
-    }
-    
-    // 3. Doctor-specific onboarding: create clinic
-    if (user.role === 'doctor' && user.specialty_set && !user.clinic_created) {
-        if (pathname !== '/onboarding/create-clinic') {
-            router.replace('/onboarding/create-clinic');
-        }
-        return; // Stop further checks
-    }
-      
-    // 4. Doctor-specific onboarding: create staff
-    if (user.role === 'doctor' && user.clinic_created && !user.staff_created) {
-        if (pathname !== '/onboarding/create-staff') {
-            router.replace('/onboarding/create-staff');
-        }
-        return; // Stop further checks
-    }
-
-    // 5. If user is fully onboarded, redirect from any public or onboarding page to dashboard
-    if (isPublicRoute || isOnboardingRoute) {
-      router.replace('/dashboard');
     }
 
   }, [user, isLoading, pathname, router]);
