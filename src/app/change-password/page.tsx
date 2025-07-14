@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { useAuth } from "@/context/auth-context"
 import { API_BASE_URL } from "@/lib/config"
+import withAuth from "@/components/auth/with-auth"
 
 const passwordSchema = z.object({
   new_password: z.string().min(8, "Password must be at least 8 characters long."),
@@ -33,7 +34,7 @@ const passwordSchema = z.object({
 
 type PasswordFormValues = z.infer<typeof passwordSchema>
 
-export default function ChangePasswordPage() {
+function ChangePasswordPage() {
   const router = useRouter()
   const { user, getAuthToken, refreshUser } = useAuth()
   const { toast } = useToast()
@@ -77,7 +78,7 @@ export default function ChangePasswordPage() {
       })
       
       // The withAuth HOC will now handle the redirect to the next step
-      // router.push('/dashboard'); is no longer needed here.
+      // The router.push is no longer needed here as withAuth will trigger a re-render and redirect.
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
@@ -145,3 +146,6 @@ export default function ChangePasswordPage() {
     </div>
   )
 }
+
+
+export default withAuth(ChangePasswordPage);

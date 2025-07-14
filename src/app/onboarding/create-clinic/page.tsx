@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { useAuth } from "@/context/auth-context"
 import { API_BASE_URL } from "@/lib/config"
 import { useToast } from "@/hooks/use-toast"
+import withAuth from "@/components/auth/with-auth"
 
 const clinicSchema = z.object({
   name: z.string().min(1, "Clinic name is required"),
@@ -119,4 +120,4 @@ function OnboardingCreateClinicPage() {
     )
 }
 
-export default OnboardingCreateClinicPage;
+export default withAuth(OnboardingCreateClinicPage);

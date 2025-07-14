@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/hooks/use-toast"
 import { API_BASE_URL } from "@/lib/config"
+import withAuth from "@/components/auth/with-auth"
 
 const staffSchema = z.object({
   email: z.string().email(),
@@ -125,4 +126,4 @@ function OnboardingCreateStaffPage() {
     )
 }
 
-export default OnboardingCreateStaffPage;
+export default withAuth(OnboardingCreateStaffPage);

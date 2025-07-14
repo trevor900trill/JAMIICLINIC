@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { useAuth } from "@/context/auth-context"
 import { API_BASE_URL } from "@/lib/config"
+import withAuth from "@/components/auth/with-auth"
 
 const specialtySchema = z.object({
   specialty: z.string().min(2, "Specialty must be at least 2 characters long."),
@@ -29,7 +30,7 @@ const specialtySchema = z.object({
 
 type SpecialtyFormValues = z.infer<typeof specialtySchema>
 
-export default function SetSpecialtyPage() {
+function SetSpecialtyPage() {
   const router = useRouter()
   const { user, getAuthToken, refreshUser } = useAuth()
   const { toast } = useToast()
@@ -125,3 +126,6 @@ export default function SetSpecialtyPage() {
     </div>
   )
 }
+
+
+export default withAuth(SetSpecialtyPage);
