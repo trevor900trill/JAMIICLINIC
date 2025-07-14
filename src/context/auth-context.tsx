@@ -119,8 +119,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { access: token, reset_initial_password, specialty_set } = data;
 
     localStorage.setItem('authToken', token);
-    localStorage.setItem('reset_initial_password', reset_initial_password);
-    localStorage.setItem('specialty_set', specialty_set);
+    localStorage.setItem('reset_initial_password', String(reset_initial_password));
+    localStorage.setItem('specialty_set', String(specialty_set));
     localStorage.removeItem('clinic_created');
     localStorage.removeItem('new_clinic_id');
 
@@ -141,14 +141,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
         setUser(currentUser);
 
-        if (currentUser.reset_initial_password) {
-            router.push('/dashboard/change-password');
-        } else if (currentUser.role === 'doctor' && !currentUser.specialty_set) {
-            router.push('/dashboard/set-specialty');
-        }
-        else {
-            router.push('/dashboard');
-        }
+        // The withAuth HOC will handle all redirection logic.
+        // We just need to push to a single entry point after login.
+        router.push('/dashboard');
+        
     } else {
         throw new Error("Failed to decode token after login.");
     }
@@ -162,6 +158,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('specialty_set');
     localStorage.removeItem('clinic_created');
     localStorage.removeItem('new_clinic_id');
+    router.push('/');
   };
 
   const getAuthToken = () => {
