@@ -75,13 +75,13 @@ export function Header() {
           </nav>
         </SheetContent>
       </Sheet>
-      <div className="flex items-center gap-4">
-        <h1 className="text-xl font-semibold hidden md:flex">{pageTitle}</h1>
-        <Badge variant="outline" className="flex items-center gap-2 capitalize">
-            <UserCog className="h-4 w-4" />
-            {user.role}
-        </Badge>
-      </div>
+      
+      <h1 className="text-xl font-semibold hidden md:block">{pageTitle}</h1>
+      <Badge variant="outline" className="hidden sm:flex items-center gap-2 capitalize">
+          <UserCog className="h-4 w-4" />
+          {user.role}
+      </Badge>
+      
       <div className="relative ml-auto flex-1 md:grow-0">
         {/* Future search bar can be placed here */}
       </div>
