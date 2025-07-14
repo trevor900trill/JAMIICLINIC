@@ -22,9 +22,6 @@ export interface User {
   role: UserRole;
   avatarUrl: string;
   reset_initial_password?: boolean;
-  specialty_set?: boolean;
-  clinic_created?: boolean;
-  new_clinic_id?: number | null;
 }
 
 interface AuthContextType {
@@ -58,38 +55,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             role: decodedUser.role,
             avatarUrl: `https://placehold.co/32x32.png`,
             reset_initial_password: localStorage.getItem('reset_initial_password') === 'true',
-            specialty_set: localStorage.getItem('specialty_set') === 'true',
-            clinic_created: localStorage.getItem('clinic_created') === 'true',
-            new_clinic_id: Number(localStorage.getItem('new_clinic_id')) || null,
           };
           setUser(storedUser);
         }
       }
     } catch (error) {
        console.error("Error loading auth state from storage:", error);
-       // Clear potentially corrupted state
        localStorage.clear();
        setUser(null);
        setAuthToken(null);
+    } finally {
+        setIsLoading(false);
     }
   };
   
   const saveStateToStorage = (userState: User, token: string) => {
       localStorage.setItem('authToken', token);
       localStorage.setItem('reset_initial_password', String(!!userState.reset_initial_password));
-      localStorage.setItem('specialty_set', String(!!userState.specialty_set));
-      localStorage.setItem('clinic_created', String(!!userState.clinic_created));
-      if (userState.new_clinic_id) {
-        localStorage.setItem('new_clinic_id', String(userState.new_clinic_id));
-      } else {
-        localStorage.removeItem('new_clinic_id');
-      }
   }
 
   useEffect(() => {
-    setIsLoading(true);
     loadStateFromStorage();
-    setIsLoading(false);
   }, []);
   
   const refreshUser = async (updates: Partial<User>) => {
@@ -114,7 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const data = await response.json();
-    const { access: token, reset_initial_password, specialty_set, clinic_created } = data;
+    const { access: token, reset_initial_password } = data;
     const decodedUser = jwtDecode(token);
     
     if (decodedUser) {
@@ -125,13 +111,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             role: decodedUser.role,
             avatarUrl: `https://placehold.co/32x32.png`,
             reset_initial_password: reset_initial_password,
-            specialty_set: specialty_set,
-            clinic_created: clinic_created,
         };
         setAuthToken(token);
         setUser(currentUser);
         saveStateToStorage(currentUser, token);
-        // The withAuth HOC will handle redirection based on the new state
+        // Let the withAuth HOC handle redirection
     } else {
         throw new Error("Failed to decode token after login.");
     }

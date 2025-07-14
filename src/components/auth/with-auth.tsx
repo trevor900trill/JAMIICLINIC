@@ -20,18 +20,15 @@ const withAuth = <P extends object>(
         return; 
       }
 
-      const isPublicRoute = ['/', '/change-password', '/set-specialty'].includes(pathname) || pathname.startsWith('/onboarding');
-      
-      // If no user, redirect to login page, unless already there.
+      // If no user is logged in, redirect to the login page
       if (!user) {
-        if (!isPublicRoute || pathname !== '/') { // Allow access only to root login page
-            if(pathname !== '/') router.replace('/');
+        if (pathname !== '/') {
+          router.replace('/');
         }
         return;
       }
       
-      // --- Onboarding Flow for Authenticated User ---
-      // 1. Force password change (highest priority)
+      // If user is logged in, handle routing based on onboarding state
       if (user.reset_initial_password) {
         if (pathname !== '/change-password') {
           router.replace('/change-password');
@@ -39,29 +36,13 @@ const withAuth = <P extends object>(
         return;
       }
       
-      // 2. Force specialty set for doctors
-      if (user.role === 'doctor' && !user.specialty_set) {
-         if (pathname !== '/set-specialty') {
-          router.replace('/set-specialty');
-        }
+      // If user is logged in and tries to access login page, redirect to dashboard
+      if (pathname === '/') {
+        router.replace('/dashboard');
         return;
       }
-      
-      // 3. Force clinic creation for doctors
-      if (user.role === 'doctor' && !user.clinic_created) {
-          if (pathname !== '/onboarding/create-clinic') {
-              router.replace('/onboarding/create-clinic');
-          }
-          return;
-      }
 
-      // If user is fully onboarded and tries to access public/onboarding routes, redirect to dashboard
-      if (isPublicRoute) {
-          router.replace('/dashboard');
-          return;
-      }
-
-      // --- Role-based Access Control for protected dashboard routes ---
+      // Role-based access control for protected dashboard routes
       if (requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
         router.replace('/not-found');
         return;
@@ -69,7 +50,7 @@ const withAuth = <P extends object>(
 
     }, [user, isLoading, router, pathname]);
 
-    // Render a loading spinner while auth state is being determined, unless on the public login page
+    // Show a loading spinner while authentication state is being determined
     if (isLoading) {
        return (
           <div className="flex h-screen items-center justify-center">
@@ -80,6 +61,11 @@ const withAuth = <P extends object>(
     
     // Prevent rendering of protected pages if user is not authenticated
     if (!user && pathname !== '/') {
+        return null;
+    }
+    
+    // Don't render the login page if the user is already logged in
+    if (user && pathname === '/') {
         return null;
     }
 
