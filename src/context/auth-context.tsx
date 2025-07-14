@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '@/lib/config';
 
 // Helper to decode JWT. NOTE: This is a simple, unsafe decode for payload data.
@@ -13,7 +14,6 @@ const jwtDecode = (token: string) => {
   }
 };
 
-
 export type UserRole = 'admin' | 'doctor' | 'staff';
 
 export interface User {
@@ -22,6 +22,7 @@ export interface User {
   email: string; // From token 'email'
   role: UserRole; // From token 'role'
   avatarUrl: string;
+  reset_initial_password?: boolean; // From login response
 }
 
 interface AuthContextType {
@@ -38,6 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     try {
@@ -45,23 +47,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (storedToken) {
         const decodedUser = jwtDecode(storedToken);
         if (decodedUser) {
-            setUser({
+            const storedUser: User = {
                 id: decodedUser.user_id,
                 name: decodedUser.name,
                 email: decodedUser.email,
                 role: decodedUser.role,
-                avatarUrl: `https://placehold.co/32x32.png`
-            });
+                avatarUrl: `https://placehold.co/32x32.png`,
+                // This value is session-specific and not stored in JWT,
+                // so we retrieve it from another localStorage item if it exists.
+                reset_initial_password: localStorage.getItem('reset_initial_password') === 'true'
+            };
+            setUser(storedUser);
             setAuthToken(storedToken);
+
+            // If the user refreshes on a page that isn't the change password page,
+            // and they need to reset their password, redirect them.
+            if (storedUser.reset_initial_password) {
+              router.push('/dashboard/change-password');
+            }
         }
       }
     } catch (error) {
       console.error("Failed to initialize auth state", error)
       localStorage.removeItem('authToken');
+      localStorage.removeItem('reset_initial_password');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [router]);
 
   const login = async (email: string, pass: string): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/api/login/`, {
@@ -78,7 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const data = await response.json();
-    const { access: token } = data;
+    const { access: token, reset_initial_password } = data;
     
     const decodedUser = jwtDecode(token);
     if (decodedUser) {
@@ -87,11 +100,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             name: decodedUser.name,
             email: decodedUser.email,
             role: decodedUser.role,
-            avatarUrl: `https://placehold.co/32x32.png`
+            avatarUrl: `https://placehold.co/32x32.png`,
+            reset_initial_password: reset_initial_password
         };
         setUser(userPayload);
         setAuthToken(token);
         localStorage.setItem('authToken', token);
+        
+        if (reset_initial_password) {
+            localStorage.setItem('reset_initial_password', 'true');
+            router.push('/dashboard/change-password');
+        } else {
+            localStorage.removeItem('reset_initial_password');
+            router.push('/dashboard');
+        }
     } else {
         throw new Error("Failed to decode token");
     }
@@ -101,6 +123,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     setAuthToken(null);
     localStorage.removeItem('authToken');
+    localStorage.removeItem('reset_initial_password');
   };
 
   const getAuthToken = () => {

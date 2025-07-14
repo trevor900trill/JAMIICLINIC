@@ -2,7 +2,7 @@
 
 import React, { ComponentType, useEffect } from 'react';
 import { useAuth, UserRole } from '@/context/auth-context';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 const withAuth = <P extends object>(
@@ -12,23 +12,41 @@ const withAuth = <P extends object>(
   const AuthComponent = (props: P) => {
     const { user, isLoading } = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
 
     useEffect(() => {
-      if (!isLoading) {
-        if (!user) {
-          router.replace('/');
-          return;
-        }
+      if (isLoading) {
+        return; // Wait until loading is complete
+      }
 
-        if (requiredRoles && requiredRoles.length > 0) {
-          const hasRequiredRole = requiredRoles.includes(user.role);
-          if (!hasRequiredRole) {
-            router.replace('/not-found');
-          }
+      // If not logged in, redirect to home
+      if (!user) {
+        router.replace('/');
+        return;
+      }
+
+      // If user needs to change password, redirect them and prevent access to other pages
+      if (user.reset_initial_password && pathname !== '/dashboard/change-password') {
+        router.replace('/dashboard/change-password');
+        return;
+      }
+      
+      // If user is on change-password page but doesn't need to be, redirect to dashboard
+      if (!user.reset_initial_password && pathname === '/dashboard/change-password') {
+          router.replace('/dashboard');
+          return;
+      }
+
+      // If roles are required, check for them
+      if (requiredRoles && requiredRoles.length > 0) {
+        const hasRequiredRole = requiredRoles.includes(user.role);
+        if (!hasRequiredRole) {
+          router.replace('/not-found');
         }
       }
-    }, [user, isLoading, router, requiredRoles]);
+    }, [user, isLoading, router, requiredRoles, pathname]);
 
+    // Show a loader while authentication state is resolving
     if (isLoading || !user) {
       return (
         <div className="flex h-screen items-center justify-center">
@@ -37,8 +55,12 @@ const withAuth = <P extends object>(
       );
     }
     
+    // Prevent rendering the component if a redirect is imminent
+    if (user.reset_initial_password && pathname !== '/dashboard/change-password') {
+      return null;
+    }
     if (requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
-       return null; // or a loading/access denied component, handled by redirect
+       return null; 
     }
 
     return <WrappedComponent {...props} />;

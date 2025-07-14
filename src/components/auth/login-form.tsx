@@ -3,7 +3,6 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -29,7 +28,6 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>
 
 export function LoginForm() {
-  const router = useRouter()
   const { login } = useAuth()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = React.useState(false)
@@ -46,12 +44,12 @@ export function LoginForm() {
     setIsLoading(true)
     try {
       await login(data.email, data.password)
+      // The redirect is now handled within the login function itself
+      // We show a generic toast here, which is fine as the user will be navigated away.
       toast({
         title: "Login Successful",
-        description: "Welcome back!",
+        description: "Redirecting...",
       })
-      router.push("/dashboard")
-      router.refresh(); // To re-fetch server-side data like navigation
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
       toast({
