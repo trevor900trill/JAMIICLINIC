@@ -22,7 +22,6 @@ import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { useAuth } from "@/context/auth-context"
 import { API_BASE_URL } from "@/lib/config"
-import withAuth from "@/components/auth/with-auth"
 
 const passwordSchema = z.object({
   new_password: z.string().min(8, "Password must be at least 8 characters long."),
@@ -34,11 +33,11 @@ const passwordSchema = z.object({
 
 type PasswordFormValues = z.infer<typeof passwordSchema>
 
-function ChangePasswordPage() {
+export default function ChangePasswordPage() {
   const router = useRouter()
-  const { user, getAuthToken, refreshUser } = useAuth()
+  const { user, isLoading, getAuthToken, refreshUser } = useAuth()
   const { toast } = useToast()
-  const [isLoading, setIsLoading] = React.useState(false)
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
 
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
@@ -49,7 +48,7 @@ function ChangePasswordPage() {
   })
 
   async function onSubmit(data: PasswordFormValues) {
-    setIsLoading(true)
+    setIsSubmitting(true)
     try {
       const token = getAuthToken()
       const response = await fetch(`${API_BASE_URL}/api/users/change-password/`, {
@@ -77,8 +76,7 @@ function ChangePasswordPage() {
         description: "Your password has been updated.",
       })
       
-      // The withAuth HOC will handle the next redirect
-      // router.push("/dashboard");
+      router.push("/dashboard");
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
@@ -88,8 +86,16 @@ function ChangePasswordPage() {
         description: errorMessage,
       })
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
+  }
+  
+  if (isLoading || !user) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
@@ -135,9 +141,9 @@ function ChangePasswordPage() {
               />
             </CardContent>
             <CardFooter>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoading ? "Saving..." : "Set New Password"}
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting ? "Saving..." : "Set New Password"}
               </Button>
             </CardFooter>
           </form>
@@ -146,6 +152,3 @@ function ChangePasswordPage() {
     </div>
   )
 }
-
-
-export default withAuth(ChangePasswordPage);

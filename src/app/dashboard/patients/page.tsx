@@ -1,3 +1,4 @@
+
 "use client"
 import React from "react"
 import {
@@ -59,7 +60,6 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { DataTablePagination } from "@/components/ui/data-table-pagination"
-import withAuth from "@/components/auth/with-auth"
 import { useAuth } from "@/context/auth-context"
 import { API_BASE_URL } from "@/lib/config"
 
@@ -420,4 +420,4 @@ function PatientsPage() {
     )
 }
 
-export default withAuth(PatientsPage);
+export default PatientsPage;

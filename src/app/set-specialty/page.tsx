@@ -21,8 +21,6 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { useAuth } from "@/context/auth-context"
-import { API_BASE_URL } from "@/lib/config"
-import withAuth from "@/components/auth/with-auth"
 
 const specialtySchema = z.object({
   specialty: z.string().min(2, "Please enter a valid specialty."),
@@ -30,11 +28,11 @@ const specialtySchema = z.object({
 
 type SpecialtyFormValues = z.infer<typeof specialtySchema>
 
-function SetSpecialtyPage() {
+export default function SetSpecialtyPage() {
   const router = useRouter()
-  const { user, getAuthToken, refreshUser } = useAuth()
+  const { user, isLoading, getAuthToken, refreshUser } = useAuth()
   const { toast } = useToast()
-  const [isLoading, setIsLoading] = React.useState(false)
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
 
   const form = useForm<SpecialtyFormValues>({
     resolver: zodResolver(specialtySchema),
@@ -44,7 +42,7 @@ function SetSpecialtyPage() {
   })
 
   async function onSubmit(data: SpecialtyFormValues) {
-    setIsLoading(true)
+    setIsSubmitting(true)
     try {
       const token = getAuthToken()
       // NOTE: The API Spec doesn't have an endpoint to set specialty.
@@ -59,8 +57,7 @@ function SetSpecialtyPage() {
         title: "Specialty Set!",
         description: "Your specialty has been successfully saved.",
       })
-      // The withAuth HOC will handle redirecting to the next step
-      
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
       toast({
@@ -69,8 +66,16 @@ function SetSpecialtyPage() {
         description: errorMessage,
       })
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
+  }
+
+  if (isLoading || !user) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
@@ -103,9 +108,9 @@ function SetSpecialtyPage() {
               />
             </CardContent>
             <CardFooter>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoading ? "Saving..." : "Continue"}
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting ? "Saving..." : "Continue"}
               </Button>
             </CardFooter>
           </form>
@@ -114,5 +119,3 @@ function SetSpecialtyPage() {
     </div>
   )
 }
-
-export default withAuth(SetSpecialtyPage);

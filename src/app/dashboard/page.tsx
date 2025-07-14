@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -7,7 +8,6 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/auth-context'
-import withAuth from '@/components/auth/with-auth'
 
 const getDashboardStats = (role: 'admin' | 'doctor' | 'staff') => {
   const baseStats = [
@@ -50,7 +50,7 @@ const recentAppointments = [
   { name: "Ethan Davis", time: "3:30 PM", doctor: "Dr. Wayne" },
 ]
 
-function DashboardPage() {
+export default function DashboardPage() {
   const { user } = useAuth();
   const stats = getDashboardStats(user?.role || 'staff');
   
@@ -132,5 +132,3 @@ function DashboardPage() {
     </div>
   )
 }
-
-export default withAuth(DashboardPage);

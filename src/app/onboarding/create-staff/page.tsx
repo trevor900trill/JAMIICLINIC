@@ -13,7 +13,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { useAuth } from "@/context/auth-context"
 import { API_BASE_URL } from "@/lib/config"
 import { useToast } from "@/hooks/use-toast"
-import withAuth from "@/components/auth/with-auth"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 const staffSchema = z.object({
@@ -27,9 +26,9 @@ const staffSchema = z.object({
 });
 
 function CreateStaffPage() {
-    const { getAuthToken, skipOnboardingStep } = useAuth();
+    const { getAuthToken, skipOnboardingStep, user, isLoading } = useAuth();
     const { toast } = useToast();
-    const [isLoading, setIsLoading] = React.useState(false);
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
     
     const form = useForm<z.infer<typeof staffSchema>>({
         resolver: zodResolver(staffSchema),
@@ -37,7 +36,7 @@ function CreateStaffPage() {
     })
 
     async function onSubmit(values: z.infer<typeof staffSchema>) {
-        setIsLoading(true);
+        setIsSubmitting(true);
          try {
             const token = getAuthToken();
             const response = await fetch(`${API_BASE_URL}/api/doctor/create-staff/`, {
@@ -56,15 +55,23 @@ function CreateStaffPage() {
             }
 
             toast({ title: "Success", description: "Staff member created successfully." });
-            skipOnboardingStep('staff_created'); // Proceed to dashboard
+            skipOnboardingStep('staff_created');
 
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
             toast({ variant: "destructive", title: "Error", description: errorMessage });
         } finally {
-            setIsLoading(false);
+            setIsSubmitting(false);
         }
     };
+
+    if (isLoading || !user) {
+      return (
+        <div className="flex h-screen items-center justify-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      );
+    }
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-muted/40 items-center justify-center p-4">
@@ -104,9 +111,9 @@ function CreateStaffPage() {
                             )} />
                         </CardContent>
                         <CardFooter className="flex-col gap-4">
-                             <Button type="submit" className="w-full" disabled={isLoading}>
-                                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {isLoading ? "Saving..." : "Add Staff & Finish"}
+                             <Button type="submit" className="w-full" disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isSubmitting ? "Saving..." : "Add Staff & Finish"}
                             </Button>
                              <Button type="button" variant="ghost" className="w-full" onClick={() => skipOnboardingStep('staff_created')}>
                                 Skip and Go to Dashboard
@@ -119,4 +126,4 @@ function CreateStaffPage() {
     )
 }
 
-export default withAuth(CreateStaffPage);
+export default CreateStaffPage;

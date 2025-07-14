@@ -61,7 +61,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DataTablePagination } from "@/components/ui/data-table-pagination"
-import withAuth from "@/components/auth/with-auth"
 import type { UserRole } from "@/context/auth-context"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/hooks/use-toast"
@@ -420,6 +419,4 @@ function DoctorsPage() {
     )
 }
 
-
-const requiredRoles: UserRole[] = ["admin"];
-export default withAuth(DoctorsPage, requiredRoles);
+export default DoctorsPage;

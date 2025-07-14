@@ -1,3 +1,4 @@
+
 "use client"
 import React from "react"
 import {
@@ -60,7 +61,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DataTablePagination } from "@/components/ui/data-table-pagination"
-import withAuth from "@/components/auth/with-auth"
 import { useAuth, UserRole } from "@/context/auth-context"
 import { useToast } from "@/hooks/use-toast"
 import { API_BASE_URL } from "@/lib/config"
@@ -392,5 +392,4 @@ function StaffPage() {
     )
 }
 
-const requiredRoles: UserRole[] = ["admin", "doctor"];
-export default withAuth(StaffPage, requiredRoles);
+export default StaffPage;

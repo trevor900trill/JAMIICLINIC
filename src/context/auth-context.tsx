@@ -2,8 +2,9 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { API_BASE_URL } from '@/lib/config';
+import { Loader2 } from 'lucide-react';
 
 const jwtDecode = (token: string) => {
   try {
@@ -48,57 +49,86 @@ const safeJSONParse = (item: string | null) => {
     }
 }
 
+const PUBLIC_ROUTES = ['/'];
+const ONBOARDING_ROUTES = ['/change-password', '/set-specialty', '/onboarding/create-clinic', '/onboarding/create-staff'];
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
 
-  const loadStateFromStorage = () => {
-    try {
-      const storedToken = localStorage.getItem('authToken');
-      const storedUser = safeJSONParse(localStorage.getItem('user'));
-
-      if (storedToken && storedUser) {
-        setAuthToken(storedToken);
-        setUser(storedUser);
-      }
-    } catch (error) {
-       console.error("Error loading auth state from storage:", error);
-       localStorage.clear();
-       setUser(null);
-       setAuthToken(null);
-    } finally {
-        setIsLoading(false);
+  const updateUserState = (newUser: User | null, newToken: string | null) => {
+    setUser(newUser);
+    setAuthToken(newToken);
+    if (typeof window !== 'undefined') {
+        if (newUser && newToken) {
+            localStorage.setItem('authToken', newToken);
+            localStorage.setItem('user', JSON.stringify(newUser));
+        } else {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+        }
     }
-  };
-  
-  const saveStateToStorage = (userState: User | null, token: string | null) => {
-      if (userState && token) {
-        localStorage.setItem('authToken', token);
-        localStorage.setItem('user', JSON.stringify(userState));
-      } else {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-      }
   }
+  
+  useEffect(() => {
+    const storedToken = localStorage.getItem('authToken');
+    const storedUser = safeJSONParse(localStorage.getItem('user'));
+    if (storedToken && storedUser) {
+        updateUserState(storedUser, storedToken);
+    }
+    setIsLoading(false);
+  }, []);
 
   useEffect(() => {
-    loadStateFromStorage();
-  }, []);
+    if (isLoading) return;
+
+    const isPublicPage = PUBLIC_ROUTES.includes(pathname);
+    const isOnboardingPage = ONBOARDING_ROUTES.includes(pathname);
+    
+    if (!user && !isPublicPage) {
+        router.replace('/');
+        return;
+    }
+
+    if (user) {
+        if (user.reset_initial_password) {
+            if (pathname !== '/change-password') router.replace('/change-password');
+            return;
+        }
+
+        if (user.role === 'doctor') {
+            if (!user.specialty_set) {
+                if (pathname !== '/set-specialty') router.replace('/set-specialty');
+                return;
+            }
+            if (!user.clinic_created) {
+                if (pathname !== '/onboarding/create-clinic') router.replace('/onboarding/create-clinic');
+                return;
+            }
+            if (!user.staff_created) {
+                if (pathname !== '/onboarding/create-staff') router.replace('/onboarding/create-staff');
+                return;
+            }
+        }
+        
+        // If user is fully onboarded, redirect from public/onboarding pages to dashboard
+        if (isPublicPage || isOnboardingPage) {
+            router.replace('/dashboard');
+        }
+    }
+
+  }, [user, isLoading, pathname, router]);
   
   const refreshUser = async (updates: Partial<User>) => {
-    setUser(prevUser => {
-      if (!prevUser || !authToken) return null;
-      const updatedUser = { ...prevUser, ...updates };
-      saveStateToStorage(updatedUser, authToken);
-      return updatedUser;
-    });
+    const updatedUser = user ? { ...user, ...updates } : null;
+    updateUserState(updatedUser, authToken);
   }
   
   const skipOnboardingStep = async (step: 'clinic_created' | 'staff_created') => {
     await refreshUser({ [step]: true });
-    router.push('/dashboard'); 
   }
 
   const login = async (email: string, pass: string): Promise<void> => {
@@ -129,24 +159,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             clinic_created: clinic_created || false,
             staff_created: staff_created || false,
         };
-        setAuthToken(token);
-        setUser(currentUser);
-        saveStateToStorage(currentUser, token);
-        // NO REDIRECTS HERE. withAuth will handle it.
+        updateUserState(currentUser, token);
     } else {
         throw new Error("Failed to decode token after login.");
     }
   };
 
   const logout = () => {
-    setUser(null);
-    setAuthToken(null);
-    saveStateToStorage(null, null); // Clear storage
+    updateUserState(null, null);
     router.replace('/');
   };
 
   const getAuthToken = () => {
     return authToken;
+  }
+  
+  const isProtectedRoute = !PUBLIC_ROUTES.includes(pathname) && !ONBOARDING_ROUTES.includes(pathname);
+  if (isLoading || (!user && isProtectedRoute)) {
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    );
   }
 
   return (

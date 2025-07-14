@@ -1,3 +1,4 @@
+
 "use client"
 import React from "react"
 import { useForm } from "react-hook-form"
@@ -59,7 +60,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Loader2 } from "lucide-react"
 import { DataTablePagination } from "@/components/ui/data-table-pagination"
-import withAuth from "@/components/auth/with-auth"
 import { useAuth, UserRole } from "@/context/auth-context"
 import { API_BASE_URL } from "@/lib/config"
 import { useToast } from "@/hooks/use-toast"
@@ -397,5 +397,4 @@ function ClinicsPage() {
     )
 }
 
-const requiredRoles: UserRole[] = ["admin", "doctor"];
-export default withAuth(ClinicsPage, requiredRoles);
+export default ClinicsPage;
