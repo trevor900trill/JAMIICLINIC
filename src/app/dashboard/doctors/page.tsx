@@ -313,7 +313,7 @@ function DoctorsPage() {
     }
 
     return (
-        <Card className="overflow-hidden">
+        <Card>
             <CardHeader>
                 <CardTitle>Doctors</CardTitle>
                 <CardDescription>Manage all doctors in the system.</CardDescription>
@@ -397,9 +397,7 @@ function DoctorsPage() {
                         </Table>
                     </div>
                 </div>
-                <div className="pt-4">
-                    <DataTablePagination table={table} />
-                </div>
+                <DataTablePagination table={table} className="mt-4" />
             </CardContent>
         </Card>
     )

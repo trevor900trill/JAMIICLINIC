@@ -10,7 +10,7 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
         <SidebarNav />
         <div className="flex flex-col flex-1 w-full">
           <Header />
-          <main className="flex-1 p-4 sm:p-6 overflow-y-auto overflow-x-hidden">
+          <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
             <div className="sm:pl-14">
                 {children}
             </div>

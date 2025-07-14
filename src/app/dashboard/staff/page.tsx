@@ -297,7 +297,7 @@ function UsersPage() {
     }
 
     return (
-        <Card className="overflow-hidden">
+        <Card>
             <CardHeader>
                 <CardTitle>Staff</CardTitle>
                 <CardDescription>Manage all staff accounts in the system.</CardDescription>
@@ -383,9 +383,7 @@ function UsersPage() {
                         </Table>
                     </div>
                 </div>
-                <div className="pt-4">
-                    <DataTablePagination table={table} />
-                </div>
+                <DataTablePagination table={table} className="mt-4" />
             </CardContent>
         </Card>
     )

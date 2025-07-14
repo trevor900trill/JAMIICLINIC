@@ -299,7 +299,7 @@ function ClinicsPage() {
     }
 
     return (
-        <Card className="overflow-hidden">
+        <Card>
             <CardHeader>
                 <CardTitle>Clinics</CardTitle>
                 <CardDescription>Manage your clinic locations and their details.</CardDescription>
@@ -385,9 +385,7 @@ function ClinicsPage() {
                         </Table>
                     </div>
                 </div>
-                <div className="pt-4">
-                    <DataTablePagination table={table} />
-                </div>
+                <DataTablePagination table={table} className="mt-4" />
             </CardContent>
         </Card>
     )
