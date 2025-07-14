@@ -39,6 +39,14 @@ export default function SetSpecialtyPage() {
     defaultValues: { specialty: "" },
   })
 
+  React.useEffect(() => {
+    // This page is only for doctors, redirect if not a doctor or if user is not loaded
+    if (user && user.role !== 'doctor') {
+      router.replace('/dashboard');
+    }
+  }, [user, router]);
+
+
   async function onSubmit(data: SpecialtyFormValues) {
     setIsLoading(true)
     if (!user) {
@@ -83,9 +91,8 @@ export default function SetSpecialtyPage() {
     logout();
   }
 
+  // Render a loading state or nothing while the user object is being determined.
   if (!user || user.role !== 'doctor') {
-    // This page is only for doctors, redirect if not a doctor
-    if(typeof window !== "undefined") router.replace('/dashboard');
     return null;
   }
 
