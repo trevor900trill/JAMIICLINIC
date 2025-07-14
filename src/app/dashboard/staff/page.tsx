@@ -252,7 +252,7 @@ function AddUserForm({ onFinished }: { onFinished: () => void }) {
 
 
 function UsersPage() {
-    const { getAuthToken } = useAuth();
+    const { user, getAuthToken } = useAuth();
     const { toast } = useToast();
     const [data, setData] = React.useState<Staff[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
@@ -317,16 +317,18 @@ function UsersPage() {
                         }
                         className="max-w-sm"
                     />
-                     <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                        <DialogTrigger asChild>
-                            <Button>
-                                <PlusCircle className="mr-2 h-4 w-4" /> Add Staff
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[600px]">
-                            <AddUserForm onFinished={onFormFinished} />
-                        </DialogContent>
-                    </Dialog>
+                    {user?.role === 'doctor' && (
+                        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                            <DialogTrigger asChild>
+                                <Button>
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Add Staff
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[600px]">
+                                <AddUserForm onFinished={onFormFinished} />
+                            </DialogContent>
+                        </Dialog>
+                    )}
                 </div>
                 <div className="rounded-md border">
                     <Table>

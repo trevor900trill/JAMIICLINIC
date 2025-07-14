@@ -249,7 +249,7 @@ function AddClinicForm({ onFinished }: { onFinished: () => void }) {
 }
 
 function ClinicsPage() {
-    const { getAuthToken } = useAuth()
+    const { user, getAuthToken } = useAuth()
     const { toast } = useToast()
     const [data, setData] = React.useState<Clinic[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
@@ -322,16 +322,18 @@ function ClinicsPage() {
                         }
                         className="max-w-sm"
                     />
-                     <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                        <DialogTrigger asChild>
-                            <Button>
-                                <PlusCircle className="mr-2 h-4 w-4" /> Add Clinic
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
-                            <AddClinicForm onFinished={onFormFinished} />
-                        </DialogContent>
-                    </Dialog>
+                    {user?.role === 'doctor' && (
+                        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                            <DialogTrigger asChild>
+                                <Button>
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Add Clinic
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[425px]">
+                                <AddClinicForm onFinished={onFormFinished} />
+                            </DialogContent>
+                        </Dialog>
+                    )}
                 </div>
                 <div className="rounded-md border">
                     <Table>

@@ -66,16 +66,13 @@ import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/hooks/use-toast"
 import { API_BASE_URL } from "@/lib/config"
 
-// Based on AdminCreateUser schema, for doctors
 export type Doctor = {
     id: number;
+    full_name: string;
     email: string;
-    first_name: string;
-    last_name: string;
-    gender: 'male' | 'female' | null;
     telephone: string;
-    role: 'doctor';
-    specialty?: string; // Not in create user, but useful for display
+    gender: 'male' | 'female' | null;
+    specialty?: string; // This might come from another endpoint, keeping it optional
 }
 
 const doctorSchema = z.object({
@@ -114,16 +111,17 @@ function DeactivateDoctorDialog() {
 
 export const columns: ColumnDef<Doctor>[] = [
     {
-        accessorKey: "first_name",
+        accessorKey: "full_name",
         header: "Name",
         cell: ({ row }) => {
             const user = row.original
-            const name = `${user.first_name} ${user.last_name}`
+            const name = user.full_name
+            const fallback = name.split(' ').map(n => n[0]).join('').toUpperCase()
             return (
                 <div className="flex items-center gap-3">
                     <Avatar className="hidden h-9 w-9 sm:flex">
                         <AvatarImage src={`https://placehold.co/36x36.png`} alt="Avatar" data-ai-hint="person portrait" />
-                        <AvatarFallback>{name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                        <AvatarFallback>{fallback}</AvatarFallback>
                     </Avatar>
                     <div className="grid gap-0.5">
                         <p className="font-medium">{name}</p>
@@ -260,7 +258,7 @@ function AddDoctorForm({ onFinished }: { onFinished: () => void }) {
 
 function DoctorsPage() {
     const { toast } = useToast();
-    const { getAuthToken: getAuth } = useAuth();
+    const { user, getAuthToken } = useAuth();
     const [data, setData] = React.useState<Doctor[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
     const [sorting, setSorting] = React.useState<SortingState>([])
@@ -270,31 +268,22 @@ function DoctorsPage() {
 
     const fetchDoctors = React.useCallback(async () => {
         setIsLoading(true);
-        // NOTE: The swagger spec does not define an endpoint for LISTING users/doctors.
-        // It only has one for CREATING users (`/api/users/create/`).
-        // I will use the `/api/clinics/staff/` endpoint and filter for doctors by role,
-        // which might not be correct but is the closest available. This should be updated
-        // when a dedicated doctor list endpoint is provided.
         try {
-            const token = getAuth();
-            const response = await fetch(`${API_BASE_URL}/api/clinics/staff/`, {
+            const token = getAuthToken();
+            const response = await fetch(`${API_BASE_URL}/api/users/doctors/`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (!response.ok) throw new Error("Failed to fetch users");
-            const staffData = await response.json();
+            if (!response.ok) throw new Error("Failed to fetch doctors");
+            const doctorsData = await response.json();
             
-            // This is a temporary workaround. Ideally, there is a dedicated doctor endpoint.
-            const doctors = staffData.filter((user: any) => user.position_name.toLowerCase().includes('doctor'))
-                .map((doc: any) => ({
-                    id: doc.staff_id,
-                    email: doc.email,
-                    first_name: doc.first_name,
-                    last_name: doc.last_name,
-                    telephone: doc.telephone,
-                    role: 'doctor',
-                    specialty: 'General'
-                }));
-            setData(doctors);
+            // The specialty might need to be fetched from a different endpoint.
+            // For now, we'll map it as a placeholder.
+            const doctorsWithPlaceholderSpecialty = doctorsData.map((doc: any) => ({
+                ...doc,
+                specialty: 'General', // Placeholder
+            }))
+
+            setData(doctorsWithPlaceholderSpecialty);
 
         } catch (error) {
              toast({ variant: "destructive", title: "Warning", description: "Could not fetch doctor list. Displaying empty table." });
@@ -302,7 +291,7 @@ function DoctorsPage() {
         } finally {
             setIsLoading(false)
         }
-    }, [getAuth, toast]);
+    }, [getAuthToken, toast]);
 
     React.useEffect(() => {
         fetchDoctors();
@@ -338,9 +327,9 @@ function DoctorsPage() {
                  <div className="flex items-center justify-between pb-4">
                     <Input
                         placeholder="Search by doctor's name..."
-                        value={(table.getColumn("first_name")?.getFilterValue() as string) ?? ""}
+                        value={(table.getColumn("full_name")?.getFilterValue() as string) ?? ""}
                         onChange={(event) =>
-                            table.getColumn("first_name")?.setFilterValue(event.target.value)
+                            table.getColumn("full_name")?.setFilterValue(event.target.value)
                         }
                         className="max-w-sm"
                     />
