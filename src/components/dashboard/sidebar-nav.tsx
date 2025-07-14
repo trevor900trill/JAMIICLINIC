@@ -13,7 +13,6 @@ import {
   Users,
   Building,
   HeartPulse,
-  Bot,
   Settings,
   Stethoscope
 } from 'lucide-react'
@@ -24,7 +23,6 @@ const navItems = [
   { href: '/dashboard/users', label: 'Users', icon: Users },
   { href: '/dashboard/clinics', label: 'Clinics', icon: Building },
   { href: '/dashboard/patients', label: 'Patients', icon: HeartPulse },
-  { href: '/dashboard/ai-diagnosis', label: 'AI Diagnosis', icon: Bot },
 ]
 
 export function SidebarNav() {

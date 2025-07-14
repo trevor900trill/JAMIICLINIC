@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Home, Users, Building, HeartPulse, Bot, PanelLeft, Stethoscope } from 'lucide-react'
+import { Home, Users, Building, HeartPulse, PanelLeft, Stethoscope } from 'lucide-react'
 import React from 'react'
 
 const navItems = [
@@ -20,7 +20,6 @@ const navItems = [
   { href: '/dashboard/users', label: 'Users', icon: Users },
   { href: '/dashboard/clinics', label: 'Clinics', icon: Building },
   { href: '/dashboard/patients',label: 'Patients', icon: HeartPulse },
-  { href: '/dashboard/ai-diagnosis', label: 'AI Diagnosis', icon: Bot },
 ]
 
 export function Header() {
