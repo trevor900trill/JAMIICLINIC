@@ -9,7 +9,7 @@ export default function LoginPage() {
           <div className="bg-primary p-3 rounded-full mb-4">
             <Stethoscope className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-bold text-center text-foreground">Clinic Manager Pro</h1>
+          <h1 className="text-3xl font-bold text-center text-foreground">Jamii Clinic</h1>
           <p className="text-muted-foreground text-center">Welcome back! Please sign in to your account.</p>
         </div>
         <LoginForm />

@@ -12,8 +12,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Home, Users, Building, HeartPulse, PanelLeft, Stethoscope } from 'lucide-react'
+import { Home, Users, Building, HeartPulse, PanelLeft, Stethoscope, UserCog } from 'lucide-react'
 import React from 'react'
+import { Badge } from '@/components/ui/badge'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
@@ -21,6 +22,12 @@ const navItems = [
   { href: '/dashboard/clinics', label: 'Clinics', icon: Building },
   { href: '/dashboard/patients',label: 'Patients', icon: HeartPulse },
 ]
+
+// In a real app, you'd get this from auth context
+const user = {
+    name: "Dr. Wayne Musungu",
+    role: "Doctor"
+}
 
 export function Header() {
   const pathname = usePathname()
@@ -43,7 +50,7 @@ export function Header() {
                 className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
               >
                 <Stethoscope className="h-5 w-5 transition-all group-hover:scale-110" />
-                <span className="sr-only">Clinic Manager Pro</span>
+                <span className="sr-only">Jamii Clinic</span>
               </Link>
             {navItems.map(item => (
                 <Link
@@ -58,7 +65,13 @@ export function Header() {
           </nav>
         </SheetContent>
       </Sheet>
-      <h1 className="text-xl font-semibold hidden md:flex">{pageTitle}</h1>
+      <div className="flex items-center gap-4">
+        <h1 className="text-xl font-semibold hidden md:flex">{pageTitle}</h1>
+        <Badge variant="outline" className="flex items-center gap-2">
+            <UserCog className="h-4 w-4" />
+            {user.role}
+        </Badge>
+      </div>
       <div className="relative ml-auto flex-1 md:grow-0">
         {/* Future search bar can be placed here */}
       </div>
