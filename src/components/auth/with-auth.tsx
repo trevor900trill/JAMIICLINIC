@@ -47,8 +47,8 @@ const withAuth = <P extends object>(
 
       // 3. Force clinic creation for doctors
       if (user.role === 'doctor' && user.specialty_set && !user.clinic_created) {
-         if (pathname !== '/dashboard/onboarding/create-clinic' && pathname !== '/dashboard/onboarding/create-staff') {
-           router.replace('/dashboard/onboarding/create-clinic');
+         if (pathname !== '/onboarding/create-clinic' && pathname !== '/onboarding/create-staff') {
+           router.replace('/onboarding/create-clinic');
          }
          return;
       }
@@ -58,8 +58,8 @@ const withAuth = <P extends object>(
       const onboardingRoutes = [
         '/dashboard/change-password',
         '/dashboard/set-specialty',
-        '/dashboard/onboarding/create-clinic',
-        '/dashboard/onboarding/create-staff'
+        '/onboarding/create-clinic',
+        '/onboarding/create-staff'
       ];
 
       if (!isDoctorOnboarding && onboardingRoutes.includes(pathname)) {
@@ -89,7 +89,7 @@ const withAuth = <P extends object>(
     const isRedirecting = 
         (user.reset_initial_password && pathname !== '/dashboard/change-password') ||
         (user.role === 'doctor' && !user.specialty_set && pathname !== '/dashboard/set-specialty') ||
-        (user.role === 'doctor' && user.specialty_set && !user.clinic_created && !pathname.startsWith('/dashboard/onboarding')) ||
+        (user.role === 'doctor' && user.specialty_set && !user.clinic_created && !pathname.startsWith('/onboarding')) ||
         (requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role));
 
     if (isRedirecting) {

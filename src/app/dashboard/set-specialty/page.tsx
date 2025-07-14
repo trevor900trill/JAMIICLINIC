@@ -70,7 +70,7 @@ export default function SetSpecialtyPage() {
       })
       
       await refreshUser({ specialty_set: true });
-      router.push("/dashboard/onboarding/create-clinic")
+      router.push("/onboarding/create-clinic")
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
