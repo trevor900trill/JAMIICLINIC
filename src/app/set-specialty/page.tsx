@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, Stethoscope } from "lucide-react"
-import { API_BASE_URL } from '@/lib/config'
+import { API_BASE_URL } from "@/lib/config"
 
 const specialtySchema = z.object({
   specialty: z.string().min(2, "Specialty is required."),
@@ -41,6 +41,11 @@ export default function SetSpecialtyPage() {
 
   async function onSubmit(data: SpecialtyFormValues) {
     setIsLoading(true)
+    if (!user) {
+        toast({ variant: "destructive", title: "Error", description: "You must be logged in." });
+        setIsLoading(false);
+        return;
+    }
     try {
         const token = getAuthToken();
         const response = await fetch(`${API_BASE_URL}/api/doctor/set-specialty/`, {
@@ -49,7 +54,10 @@ export default function SetSpecialtyPage() {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ name: data.specialty }),
+            body: JSON.stringify({ 
+              specialty: data.specialty,
+              email: user.email
+            }),
         })
 
         if (!response.ok) {
