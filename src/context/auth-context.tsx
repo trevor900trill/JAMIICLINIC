@@ -85,27 +85,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (isLoading) return;
 
-    const isPublicPage = PUBLIC_ROUTES.includes(pathname);
-    const isOnboardingPage = ONBOARDING_ROUTES.includes(pathname);
-    
+    const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
+    const isOnboardingRoute = ONBOARDING_ROUTES.includes(pathname);
+
     if (!user) {
-        if (!isPublicPage && !isOnboardingPage) {
-            router.replace('/');
-        }
-        return;
+      // If user is not logged in, and not on a public route, redirect to login
+      if (!isPublicRoute) {
+        router.replace('/');
+      }
+      return;
     }
 
-    // User is logged in, handle redirects for required actions
+    // --- User is logged in, handle redirects ---
+
+    // 1. Mandatory password change
     if (user.reset_initial_password) {
-        if (pathname !== '/change-password') {
-            router.replace('/change-password');
-        }
+      if (pathname !== '/change-password') {
+        router.replace('/change-password');
+      }
+      return;
+    }
+
+    // 2. Doctor-specific onboarding
+    if (user.role === 'doctor') {
+      if (!user.specialty_set && pathname !== '/set-specialty') {
+        router.replace('/set-specialty');
         return;
+      }
+      if (user.specialty_set && !user.clinic_created && pathname !== '/onboarding/create-clinic') {
+        router.replace('/onboarding/create-clinic');
+        return;
+      }
+       if (user.specialty_set && user.clinic_created && !user.staff_created && pathname !== '/onboarding/create-staff') {
+        router.replace('/onboarding/create-staff');
+        return;
+      }
     }
     
-    // If user is fully onboarded, redirect from public/onboarding pages to dashboard
-    if (isPublicPage) {
-        router.replace('/dashboard');
+    // 3. If user is fully onboarded, redirect from any public or onboarding page to dashboard
+    if (isPublicRoute || isOnboardingRoute) {
+      router.replace('/dashboard');
     }
 
   }, [user, isLoading, pathname, router]);
@@ -113,17 +132,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const refreshUser = async (updates: Partial<User>) => {
     const updatedUser = user ? { ...user, ...updates } : null;
     updateUserState(updatedUser, authToken);
-    if (updatedUser) {
-       localStorage.setItem('user', JSON.stringify(updatedUser));
-    }
     return Promise.resolve();
   }
   
   const skipOnboardingStep = async (step: 'clinic_created' | 'staff_created') => {
     await refreshUser({ [step]: true });
-    // After skipping, check if the next step is needed or redirect to dashboard
-    const nextStep = user?.role === 'doctor' && !user.staff_created ? '/onboarding/create-staff' : '/dashboard';
-    router.push(nextStep);
+    // After skipping, AuthProvider's useEffect will handle the next redirect
   }
 
   const login = async (email: string, pass: string): Promise<void> => {
@@ -157,6 +171,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 staff_created: staff_created || false,
             };
             updateUserState(currentUser, token);
+            // Redirection is now handled by the useEffect hook
         } else {
             throw new Error("Failed to decode token after login.");
         }
