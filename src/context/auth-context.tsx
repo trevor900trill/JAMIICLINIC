@@ -22,6 +22,9 @@ export interface User {
   role: UserRole;
   avatarUrl: string;
   reset_initial_password?: boolean;
+  specialty_set?: boolean; // Doctor onboarding
+  clinic_created?: boolean;  // Doctor onboarding
+  staff_created?: boolean;   // Doctor onboarding
 }
 
 interface AuthContextType {
@@ -31,9 +34,19 @@ interface AuthContextType {
   logout: () => void;
   getAuthToken: () => string | null;
   refreshUser: (updates: Partial<User>) => Promise<void>;
+  skipOnboardingStep: (step: 'clinic_created' | 'staff_created') => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const safeJSONParse = (item: string | null) => {
+    if (item === null) return null;
+    try {
+        return JSON.parse(item);
+    } catch (e) {
+        return null;
+    }
+}
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -44,20 +57,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const loadStateFromStorage = () => {
     try {
       const storedToken = localStorage.getItem('authToken');
-      if (storedToken) {
-        const decodedUser = jwtDecode(storedToken);
-        if (decodedUser) {
-          setAuthToken(storedToken);
-          const storedUser: User = {
-            id: decodedUser.user_id,
-            name: decodedUser.name,
-            email: decodedUser.email,
-            role: decodedUser.role,
-            avatarUrl: `https://placehold.co/32x32.png`,
-            reset_initial_password: localStorage.getItem('reset_initial_password') === 'true',
-          };
-          setUser(storedUser);
-        }
+      const storedUser = safeJSONParse(localStorage.getItem('user'));
+
+      if (storedToken && storedUser) {
+        setAuthToken(storedToken);
+        setUser(storedUser);
       }
     } catch (error) {
        console.error("Error loading auth state from storage:", error);
@@ -69,9 +73,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
-  const saveStateToStorage = (userState: User, token: string) => {
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('reset_initial_password', String(!!userState.reset_initial_password));
+  const saveStateToStorage = (userState: User | null, token: string | null) => {
+      if (userState && token) {
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('user', JSON.stringify(userState));
+      } else {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+      }
   }
 
   useEffect(() => {
@@ -85,6 +94,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       saveStateToStorage(updatedUser, authToken);
       return updatedUser;
     });
+  }
+  
+  const skipOnboardingStep = async (step: 'clinic_created' | 'staff_created') => {
+      await refreshUser({ [step]: true });
   }
 
   const login = async (email: string, pass: string): Promise<void> => {
@@ -100,7 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const data = await response.json();
-    const { access: token, reset_initial_password } = data;
+    const { access: token, reset_initial_password, specialty_set, clinic_created, staff_created } = data;
     const decodedUser = jwtDecode(token);
     
     if (decodedUser) {
@@ -111,15 +124,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             role: decodedUser.role,
             avatarUrl: `https://placehold.co/32x32.png`,
             reset_initial_password: reset_initial_password,
+            // Initialize doctor onboarding state from API or default to false
+            specialty_set: specialty_set || false,
+            clinic_created: clinic_created || false,
+            staff_created: staff_created || false,
         };
         setAuthToken(token);
         setUser(currentUser);
         saveStateToStorage(currentUser, token);
         
-        // --- NEW REDIRECTION STRATEGY ---
-        // Directly navigate from here based on the API response.
         if (reset_initial_password) {
-            router.push('/dashboard/change-password');
+            router.push('/change-password');
+        } else if (currentUser.role === 'doctor' && !currentUser.specialty_set) {
+            router.push('/set-specialty');
         } else {
             router.push('/dashboard');
         }
@@ -129,9 +146,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
-    localStorage.clear();
     setUser(null);
     setAuthToken(null);
+    saveStateToStorage(null, null); // Clear storage
     router.push('/');
   };
 
@@ -140,7 +157,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, getAuthToken, refreshUser }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, getAuthToken, refreshUser, skipOnboardingStep }}>
       {children}
     </AuthContext.Provider>
   );

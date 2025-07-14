@@ -77,7 +77,8 @@ function ChangePasswordPage() {
         description: "Your password has been updated.",
       })
       
-      router.push("/dashboard");
+      // The withAuth HOC will handle the next redirect
+      // router.push("/dashboard");
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
