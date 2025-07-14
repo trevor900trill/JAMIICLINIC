@@ -16,45 +16,51 @@ const withAuth = <P extends object>(
     const pathname = usePathname();
 
     useEffect(() => {
+      // Don't do anything while auth state is loading
       if (isLoading) {
-        return; 
-      }
-
-      // If no user is logged in, and we are not on the login page, redirect to the login page.
-      if (!user && pathname !== '/') {
-        router.replace('/');
-        return;
-      }
-      
-      // If a user IS logged in and is on the login page, redirect to the dashboard.
-      if (user && pathname === '/') {
-        router.replace('/dashboard');
-        return;
-      }
-      
-      // Role-based access control for protected dashboard routes
-      if (user && requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
-        router.replace('/not-found');
         return;
       }
 
+      const isAuthPage = pathname === '/';
+
+      // If user is logged in
+      if (user) {
+        // If they are on the login page, redirect them to the dashboard
+        if (isAuthPage) {
+          router.replace('/dashboard');
+          return;
+        }
+        
+        // Handle role-based access for protected routes
+        if (requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
+          router.replace('/not-found');
+          return;
+        }
+      } else {
+        // If no user is logged in, and they are not on the login page,
+        // redirect them to the login page.
+        if (!isAuthPage) {
+          router.replace('/');
+          return;
+        }
+      }
     }, [user, isLoading, router, pathname, requiredRoles]);
 
-    // Show a loading spinner while authentication state is being determined
+    // Show a global loading spinner while we determine auth state
     if (isLoading) {
-       return (
-          <div className="flex h-screen items-center justify-center">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          </div>
-        );
+      return (
+        <div className="flex h-screen items-center justify-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      );
     }
     
-    // Prevent rendering of protected pages if user is not authenticated yet.
+    // Prevent rendering protected pages if user is not authenticated yet.
     if (!user && pathname !== '/') {
         return null;
     }
     
-    // Prevent rendering of the login page if the user is already logged in.
+    // Prevent rendering the login page if the user is already logged in (and redirect is in progress).
     if (user && pathname === '/') {
         return null;
     }
