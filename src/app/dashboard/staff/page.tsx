@@ -270,7 +270,7 @@ function UsersPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [toast]);
+    }, [toast, apiFetch]);
 
     React.useEffect(() => {
         fetchStaff();
@@ -310,7 +310,7 @@ function UsersPage() {
                         onChange={(event) =>
                             table.getColumn("first_name")?.setFilterValue(event.target.value)
                         }
-                        className="max-w-sm"
+                        className="w-full sm:max-w-sm"
                     />
                     {user?.role === 'doctor' && (
                         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
@@ -325,7 +325,7 @@ function UsersPage() {
                         </Dialog>
                     )}
                 </div>
-                <div className="rounded-md border">
+                <div className="rounded-md border overflow-x-auto">
                     <Table>
                         <TableHeader>
                             {table.getHeaderGroups().map((headerGroup) => (

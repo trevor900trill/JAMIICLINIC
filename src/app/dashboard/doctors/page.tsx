@@ -286,7 +286,7 @@ function DoctorsPage() {
         } finally {
             setIsLoading(false)
         }
-    }, [toast]);
+    }, [toast, apiFetch]);
 
     React.useEffect(() => {
         fetchDoctors();
@@ -326,7 +326,7 @@ function DoctorsPage() {
                         onChange={(event) =>
                             table.getColumn("full_name")?.setFilterValue(event.target.value)
                         }
-                        className="max-w-sm"
+                        className="w-full sm:max-w-sm"
                     />
                      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                         <DialogTrigger asChild>
@@ -339,7 +339,7 @@ function DoctorsPage() {
                         </DialogContent>
                     </Dialog>
                 </div>
-                <div className="rounded-md border">
+                <div className="rounded-md border overflow-x-auto">
                     <Table>
                         <TableHeader>
                             {table.getHeaderGroups().map((headerGroup) => (

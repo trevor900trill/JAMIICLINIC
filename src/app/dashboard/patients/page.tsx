@@ -342,7 +342,7 @@ function PatientsPage() {
                         onChange={(event) =>
                             table.getColumn("first_name")?.setFilterValue(event.target.value)
                         }
-                        className="max-w-sm"
+                        className="w-full sm:max-w-sm"
                     />
                     <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                         <DialogTrigger asChild>
@@ -355,7 +355,7 @@ function PatientsPage() {
                         </DialogContent>
                     </Dialog>
                 </div>
-                <div className="rounded-md border">
+                <div className="rounded-md border overflow-x-auto">
                     <Table>
                         <TableHeader>
                             {table.getHeaderGroups().map((headerGroup) => (

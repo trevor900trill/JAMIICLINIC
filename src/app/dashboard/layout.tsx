@@ -3,6 +3,7 @@
 import type { PropsWithChildren } from 'react'
 import { SidebarNav } from '@/components/dashboard/sidebar-nav'
 import { Header } from '@/components/dashboard/header'
+import { cn } from '@/lib/utils'
 
 export default function DashboardLayout({ children }: PropsWithChildren) {
   return (
