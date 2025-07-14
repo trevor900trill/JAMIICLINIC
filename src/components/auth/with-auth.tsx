@@ -76,7 +76,7 @@ const withAuth = <P extends object>(
         const needsSpecialty = !user.reset_initial_password && user.role === 'doctor' && !user.specialty_set && pathname !== '/dashboard/set-specialty';
         const needsClinicCreation = !user.reset_initial_password && user.role === 'doctor' && user.specialty_set && !user.clinic_created && !pathname.startsWith('/dashboard/onboarding');
         const isOnboardingRoute = ['/dashboard/change-password', '/dashboard/set-specialty', '/dashboard/onboarding/create-clinic', '/dashboard/onboarding/create-staff'].includes(pathname);
-        const isPastOnboarding = !user.reset_initial_password && (!user.specialty_set || !user.clinic_created);
+        const hasCompletedOnboarding = !user.reset_initial_password && (user.role !== 'doctor' || (user.specialty_set && user.clinic_created));
         const wrongRole = !isOnboardingRoute && requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role);
 
         if (needsPasswordChange || (user.role === 'doctor' && (needsSpecialty || needsClinicCreation)) || wrongRole) {
@@ -87,7 +87,7 @@ const withAuth = <P extends object>(
             );
         }
 
-        if (isOnboardingRoute && !isPastOnboarding) {
+        if (isOnboardingRoute && hasCompletedOnboarding) {
             return (
                 <div className="flex h-screen items-center justify-center">
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
