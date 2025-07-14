@@ -272,7 +272,7 @@ function ClinicsPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [toast]);
+    }, [apiFetch, toast]);
 
     React.useEffect(() => {
         fetchClinics();
@@ -385,7 +385,7 @@ function ClinicsPage() {
                         </Table>
                     </div>
                 </div>
-                <div className="py-4">
+                <div className="pt-4">
                     <DataTablePagination table={table} />
                 </div>
             </CardContent>

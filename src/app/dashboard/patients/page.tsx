@@ -134,7 +134,7 @@ function AddPatientForm({ onFinished }: { onFinished: () => void }) {
             <DialogTitle>Create New Patient</DialogTitle>
             <DialogDescription>Add a new patient record to the system. All fields are required.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
             <FormField control={form.control} name="first_name" render={({ field }) => (
               <FormItem>
                 <FormLabel>First Name</FormLabel>
@@ -150,7 +150,7 @@ function AddPatientForm({ onFinished }: { onFinished: () => void }) {
               </FormItem>
             )} />
             <FormField control={form.control} name="email" render={({ field }) => (
-              <FormItem>
+              <FormItem className="md:col-span-2">
                 <FormLabel>Email Address</FormLabel>
                 <FormControl><Input type="email" placeholder="john.doe@example.com" {...field} /></FormControl>
                 <FormMessage />
@@ -411,7 +411,7 @@ function PatientsPage() {
                         </Table>
                     </div>
                 </div>
-                 <div className="py-4">
+                 <div className="pt-4">
                     <DataTablePagination table={table} />
                 </div>
             </CardContent>

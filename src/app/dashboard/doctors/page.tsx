@@ -226,7 +226,7 @@ function AddDoctorForm({ onFinished }: { onFinished: () => void }) {
                         Fill in the details below to add a new doctor to the system.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="grid grid-cols-2 gap-4 py-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
                      <FormField control={form.control} name="first_name" render={({ field }) => (
                         <FormItem><FormLabel>First Name</FormLabel><FormControl><Input placeholder="John" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
@@ -234,7 +234,7 @@ function AddDoctorForm({ onFinished }: { onFinished: () => void }) {
                         <FormItem><FormLabel>Last Name</FormLabel><FormControl><Input placeholder="Doe" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="email" render={({ field }) => (
-                        <FormItem className="col-span-2"><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="john.doe@example.com" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem className="md:col-span-2"><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="john.doe@example.com" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="telephone" render={({ field }) => (
                         <FormItem><FormLabel>Telephone</FormLabel><FormControl><Input placeholder="+254..." {...field} /></FormControl><FormMessage /></FormItem>
@@ -286,7 +286,7 @@ function DoctorsPage() {
         } finally {
             setIsLoading(false)
         }
-    }, [toast]);
+    }, [apiFetch, toast]);
 
     React.useEffect(() => {
         fetchDoctors();
@@ -397,7 +397,7 @@ function DoctorsPage() {
                         </Table>
                     </div>
                 </div>
-                <div className="py-4">
+                <div className="pt-4">
                     <DataTablePagination table={table} />
                 </div>
             </CardContent>
