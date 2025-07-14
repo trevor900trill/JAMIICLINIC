@@ -73,13 +73,12 @@ export default function ChangePasswordPage() {
       
       toast({
         title: "Password Changed Successfully",
-        description: "Your password has been updated.",
+        description: "Your password has been updated. Redirecting to dashboard...",
       })
       
-      // The withAuth HOC will handle the redirect to the next step
-      // for the doctor, or to the dashboard for other roles.
-      // A simple refresh of the page can trigger the check.
+      router.push('/dashboard');
       router.refresh();
+
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";

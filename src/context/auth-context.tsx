@@ -24,9 +24,6 @@ export interface User {
   role: UserRole; // From token 'role'
   avatarUrl: string;
   reset_initial_password?: boolean;
-  specialty_set?: boolean;
-  clinic_created?: boolean;
-  new_clinic_id?: number | null;
 }
 
 interface AuthContextType {
@@ -53,15 +50,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (updates.hasOwnProperty('reset_initial_password')) {
        localStorage.setItem('reset_initial_password', String(updates.reset_initial_password));
     }
-    if (updates.hasOwnProperty('specialty_set')) {
-       localStorage.setItem('specialty_set', String(updates.specialty_set));
-    }
-    if (updates.hasOwnProperty('clinic_created')) {
-        localStorage.setItem('clinic_created', String(updates.clinic_created));
-    }
-    if (updates.hasOwnProperty('new_clinic_id')) {
-        localStorage.setItem('new_clinic_id', String(updates.new_clinic_id));
-    }
     
     setUser(updatedUser);
     return Promise.resolve();
@@ -83,9 +71,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               role: decodedUser.role,
               avatarUrl: `https://placehold.co/32x32.png`,
               reset_initial_password: localStorage.getItem('reset_initial_password') === 'true',
-              specialty_set: localStorage.getItem('specialty_set') === 'true',
-              clinic_created: localStorage.getItem('clinic_created') === 'true',
-              new_clinic_id: Number(localStorage.getItem('new_clinic_id')) || null
             });
           } else {
              logout();
@@ -116,14 +101,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const data = await response.json();
-    const { access: token, reset_initial_password, specialty_set } = data;
+    const { access: token, reset_initial_password } = data;
 
     localStorage.setItem('authToken', token);
     localStorage.setItem('reset_initial_password', String(reset_initial_password));
-    localStorage.setItem('specialty_set', String(specialty_set));
-    localStorage.removeItem('clinic_created');
-    localStorage.removeItem('new_clinic_id');
-
+    
     setAuthToken(token);
 
     const decodedUser = jwtDecode(token);
@@ -136,12 +118,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             role: decodedUser.role,
             avatarUrl: `https://placehold.co/32x32.png`,
             reset_initial_password: reset_initial_password,
-            specialty_set: specialty_set,
-            clinic_created: false, // Reset on login
         };
-        // This is the key change: we set the user and then let withAuth handle redirection.
-        // The router.push is removed from here to prevent the race condition.
         setUser(currentUser);
+        router.push('/dashboard');
         
     } else {
         logout(); // If token is invalid, log out
@@ -154,9 +133,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAuthToken(null);
     localStorage.removeItem('authToken');
     localStorage.removeItem('reset_initial_password');
-    localStorage.removeItem('specialty_set');
-    localStorage.removeItem('clinic_created');
-    localStorage.removeItem('new_clinic_id');
     router.push('/');
   };
 
