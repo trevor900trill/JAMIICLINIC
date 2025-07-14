@@ -35,13 +35,8 @@ const withAuth = <P extends object>(
         return; // Block further checks until password is changed
       }
       
-      // 2. Force specialty set for doctors if required
-      if (user.role === 'doctor' && !user.specialty) {
-        if (pathname !== '/dashboard/set-specialty') {
-          router.replace('/dashboard/set-specialty');
-        }
-        return; // Block further checks until specialty is set
-      }
+      // NOTE: Specialty check is removed as we cannot verify it without a /me endpoint.
+      // We can re-add this later.
 
       // --- Post-Onboarding Redirects ---
       // If user is on an onboarding page but doesn't need to be, redirect to dashboard
@@ -49,13 +44,7 @@ const withAuth = <P extends object>(
           router.replace('/dashboard');
           return;
       }
-      if (user.role !== 'doctor' || (user.role === 'doctor' && user.specialty)) {
-          if (pathname === '/dashboard/set-specialty') {
-              router.replace('/dashboard');
-              return;
-          }
-      }
-
+      
       // --- Role-based Access Control ---
       if (requiredRoles && requiredRoles.length > 0) {
         const hasRequiredRole = requiredRoles.includes(user.role);
@@ -76,9 +65,6 @@ const withAuth = <P extends object>(
     
     // --- Prevent rendering if a redirect is imminent ---
     if (user.reset_initial_password && pathname !== '/dashboard/change-password') {
-      return null;
-    }
-    if (user.role === 'doctor' && !user.specialty && pathname !== '/dashboard/set-specialty') {
       return null;
     }
     if (requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {

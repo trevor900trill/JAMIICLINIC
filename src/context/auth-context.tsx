@@ -24,7 +24,7 @@ export interface User {
   role: UserRole; // From token 'role'
   avatarUrl: string;
   reset_initial_password?: boolean;
-  specialty?: string | null;
+  specialty?: string | null; // Keep for future use, but won't be populated from API for now
 }
 
 interface AuthContextType {
@@ -33,36 +33,10 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<void>;
   logout: () => void;
   getAuthToken: () => string | null;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<void>; // Will be a no-op for now
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// A new endpoint to get full user details, which is not in the provided swagger.
-// We are assuming its existence for the specialty flow.
-const fetchUserDetails = async (token: string): Promise<User | null> => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/users/me/`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!response.ok) return null;
-        const data = await response.json();
-        const decodedToken = jwtDecode(token);
-
-        return {
-            id: decodedToken.user_id,
-            name: data.name || decodedToken.name,
-            email: data.email,
-            role: data.role,
-            specialty: data.specialty, // This is the key field we need
-            avatarUrl: `https://placehold.co/32x32.png`,
-            reset_initial_password: localStorage.getItem('reset_initial_password') === 'true',
-        };
-    } catch {
-        return null;
-    }
-};
-
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -71,39 +45,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   const refreshUser = async () => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-        setIsLoading(true);
-        const userDetails = await fetchUserDetails(token);
-        if (userDetails) {
-            setUser(userDetails);
-        }
-        setIsLoading(false);
-    }
+    // This function can be expanded later if a /me endpoint is added.
+    // For now, it doesn't need to do anything as data is static from the token.
+    return Promise.resolve();
   }
 
   useEffect(() => {
-    const initializeAuth = async () => {
+    const initializeAuth = () => {
+      setIsLoading(true);
       try {
         const storedToken = localStorage.getItem('authToken');
         if (storedToken) {
-          setAuthToken(storedToken);
-          const userDetails = await fetchUserDetails(storedToken);
-          if (userDetails) {
-              setUser(userDetails);
+          const decodedUser = jwtDecode(storedToken);
+          if (decodedUser) {
+            setAuthToken(storedToken);
+            setUser({
+              id: decodedUser.user_id,
+              name: decodedUser.name,
+              email: decodedUser.email,
+              role: decodedUser.role,
+              avatarUrl: `https://placehold.co/32x32.png`,
+              reset_initial_password: localStorage.getItem('reset_initial_password') === 'true',
+              specialty: null, // Specialty is unknown without a /me endpoint
+            });
           } else {
-             // Fallback to JWT if /me fails
-             const decodedUser = jwtDecode(storedToken);
-             if(decodedUser) {
-                setUser({
-                    id: decodedUser.user_id,
-                    name: decodedUser.name,
-                    email: decodedUser.email,
-                    role: decodedUser.role,
-                    avatarUrl: `https://placehold.co/32x32.png`,
-                    reset_initial_password: localStorage.getItem('reset_initial_password') === 'true'
-                })
-             }
+             logout();
           }
         }
       } catch (error) {
@@ -136,26 +102,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('authToken', token);
     setAuthToken(token);
     
-    // Store reset_password flag before fetching full details
     if (reset_initial_password) {
         localStorage.setItem('reset_initial_password', 'true');
     } else {
         localStorage.removeItem('reset_initial_password');
     }
 
-    const userDetails = await fetchUserDetails(token);
+    const decodedUser = jwtDecode(token);
     
-    if (userDetails) {
-        setUser(userDetails);
-        if (userDetails.reset_initial_password) {
+    if (decodedUser) {
+        const currentUser: User = {
+            id: decodedUser.user_id,
+            name: decodedUser.name,
+            email: decodedUser.email,
+            role: decodedUser.role,
+            avatarUrl: `https://placehold.co/32x32.png`,
+            reset_initial_password: reset_initial_password,
+            specialty: null, // Specialty is unknown
+        };
+        setUser(currentUser);
+
+        if (currentUser.reset_initial_password) {
             router.push('/dashboard/change-password');
-        } else if (userDetails.role === 'doctor' && !userDetails.specialty) {
-            router.push('/dashboard/set-specialty');
         } else {
+            // Since we cannot check for specialty, we skip that step
             router.push('/dashboard');
         }
     } else {
-        throw new Error("Failed to fetch user details after login.");
+        throw new Error("Failed to decode token after login.");
     }
   };
 
