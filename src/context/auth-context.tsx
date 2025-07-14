@@ -42,7 +42,6 @@ const safeJSONParse = (item: string | null) => {
 }
 
 const PUBLIC_ROUTES = ['/'];
-const ONBOARDING_ROUTES = ['/change-password', '/set-specialty', '/onboarding/create-clinic', '/onboarding/create-staff'];
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -79,28 +78,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (isLoading) return;
 
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
-    const isOnboardingRoute = ONBOARDING_ROUTES.includes(pathname);
     
     if (user) {
-      // Highest priority: If password change is required, force it.
-      if (user.reset_initial_password && pathname !== '/change-password') {
-        router.replace('/change-password');
-        return;
-      }
-      
-      // If password is fine, but they are a doctor who hasn't set a specialty
-      if (!user.reset_initial_password && user.role === 'doctor' && !user.specialty_set && pathname !== '/set-specialty') {
-        router.replace('/set-specialty');
-        return;
-      }
-
-      // If user is fully onboarded and tries to access login page, redirect to dashboard.
-      if (!user.reset_initial_password && isPublicRoute) {
+      if (isPublicRoute) {
          router.replace('/dashboard');
       }
-
     } else {
-      // If no user, redirect to login from any protected route
       if (!isPublicRoute) {
         router.replace('/');
       }
@@ -115,13 +98,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
   
   const skipOnboardingStep = async (step: 'clinic_created' | 'staff_created') => {
+    // This function is now a placeholder and can be rebuilt later.
     await refreshUser({ [step]: true });
-    // After skipping, AuthProvider's useEffect will handle the next redirect
-    if (step === 'clinic_created') {
-        router.push('/onboarding/create-staff');
-    } else {
-        router.push('/dashboard');
-    }
+    router.push('/dashboard');
   }
 
   const login = async (email: string, pass: string): Promise<void> => {
@@ -149,13 +128,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 role: userData.role,
                 avatarUrl: `https://placehold.co/32x32.png`,
                 reset_initial_password: userData.reset_initial_password,
-                // These will be false from the API initially for new users
-                specialty_set: false, 
-                clinic_created: false,
-                staff_created: false,
             };
             updateUserState(currentUser, token);
-            // Redirection is now handled by the useEffect hook in this component
+            // Redirection is now handled by the useEffect hook
         } else {
             throw new Error("Login response did not contain user data or token.");
         }
@@ -165,7 +140,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
-    // Clear state first to prevent flash of old content
     updateUserState(null, null);
     router.replace('/');
   };
@@ -174,7 +148,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return authToken;
   }
   
-  // This loader is for the initial app load, not for login button state
   if (isLoading) {
     return (
         <div className="flex h-screen items-center justify-center">
