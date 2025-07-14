@@ -1,6 +1,6 @@
 "use client"
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,14 +15,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Home, Users, Building, HeartPulse, PanelLeft, Stethoscope, UserCog } from 'lucide-react'
 import React from 'react'
 import { Badge } from '@/components/ui/badge'
-
-// In a real app, you'd get this from auth context. 
-// We are hardcoding it here to simulate different user roles.
-// You can change this to 'admin', 'doctor', or 'staff' to see the UI adapt.
-const user = {
-    name: "Dr. Wayne Musungu",
-    role: "admin", // Can be 'admin', 'doctor', or 'staff'
-}
+import { useAuth } from '@/context/auth-context'
 
 const allNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home, roles: ['admin', 'doctor', 'staff'] },
@@ -34,9 +27,18 @@ const allNavItems = [
 
 export function Header() {
   const pathname = usePathname()
+  const router = useRouter()
+  const { user, logout } = useAuth()
   
+  if (!user) return null; // or a loading skeleton
+
   const navItems = allNavItems.filter(item => item.roles.includes(user.role));
   const pageTitle = navItems.find(item => item.href === pathname)?.label ?? 'Dashboard'
+
+  const handleLogout = () => {
+    logout()
+    router.push('/')
+  }
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
@@ -83,8 +85,8 @@ export function Header() {
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="icon" className="overflow-hidden rounded-full">
             <Avatar>
-              <AvatarImage src="https://placehold.co/32x32.png" alt="User avatar" data-ai-hint="person portrait" />
-              <AvatarFallback>AD</AvatarFallback>
+              <AvatarImage src={user.avatarUrl} alt="User avatar" data-ai-hint="person portrait" />
+              <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
@@ -94,7 +96,7 @@ export function Header() {
           <DropdownMenuItem>Settings</DropdownMenuItem>
           <DropdownMenuItem>Support</DropdownMenuItem>
           <DropdownMenuSeparator />
-           <DropdownMenuItem asChild><Link href="/">Logout</Link></DropdownMenuItem>
+           <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>

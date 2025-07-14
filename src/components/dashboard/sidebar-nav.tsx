@@ -17,11 +17,7 @@ import {
   Stethoscope
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-// In a real app, you'd get this from auth context. 
-// We are hardcoding it here to simulate different user roles.
-// You can change this to 'admin', 'doctor', or 'staff' to see the UI adapt.
-const userRole: 'admin' | 'doctor' | 'staff' = 'admin'; 
+import { useAuth } from '@/context/auth-context'
 
 const allNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home, roles: ['admin', 'doctor', 'staff'] },
@@ -33,7 +29,11 @@ const allNavItems = [
 
 export function SidebarNav() {
   const pathname = usePathname()
-  const navItems = allNavItems.filter(item => item.roles.includes(userRole));
+  const { user } = useAuth()
+
+  if (!user) return null; // or a loading skeleton
+
+  const navItems = allNavItems.filter(item => item.roles.includes(user.role));
 
   return (
     <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">

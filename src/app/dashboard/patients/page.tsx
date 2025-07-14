@@ -61,6 +61,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 import { DataTablePagination } from "@/components/ui/data-table-pagination"
+import withAuth from "@/components/auth/with-auth"
 
 const mockPatients = [
   { id: "pat-1", name: "Alice Johnson", email: "alice@example.com", phone: "+254711111111", lastVisit: "2024-05-10" },
@@ -258,7 +259,7 @@ export const columns: ColumnDef<Patient>[] = [
   },
 ]
 
-export default function PatientsPage() {
+function PatientsPage() {
     const [data, setData] = React.useState<Patient[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
     const [sorting, setSorting] = React.useState<SortingState>([])
@@ -377,3 +378,5 @@ export default function PatientsPage() {
         </Card>
     )
 }
+
+export default withAuth(PatientsPage);

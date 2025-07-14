@@ -6,11 +6,8 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLe
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-
-// In a real app, you'd get this from auth context. 
-// We are hardcoding it here to simulate different user roles.
-// You can change this to 'admin', 'doctor', or 'staff' to see the dashboard adapt.
-const userRole: 'admin' | 'doctor' | 'staff' = 'admin'; 
+import { useAuth } from '@/context/auth-context'
+import withAuth from '@/components/auth/with-auth'
 
 const getDashboardStats = (role: 'admin' | 'doctor' | 'staff') => {
   const baseStats = [
@@ -53,13 +50,14 @@ const recentAppointments = [
   { name: "Ethan Davis", time: "3:30 PM", doctor: "Dr. Wayne" },
 ]
 
-export default function DashboardPage() {
-  const stats = getDashboardStats(userRole);
+function DashboardPage() {
+  const { user } = useAuth();
+  const stats = getDashboardStats(user?.role || 'staff');
   
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">Good morning!</h1>
+        <h1 className="text-3xl font-bold">Good morning, {user?.name}!</h1>
         <p className="text-muted-foreground">Here's a summary of your clinic's activity.</p>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -132,3 +130,5 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+export default withAuth(DashboardPage);

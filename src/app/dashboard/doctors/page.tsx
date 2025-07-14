@@ -57,6 +57,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { DataTablePagination } from "@/components/ui/data-table-pagination"
+import withAuth from "@/components/auth/with-auth"
+import type { UserRole } from "@/context/auth-context"
 
 
 const mockDoctors = [
@@ -203,7 +205,7 @@ function AddDoctorForm({ onFinished }: { onFinished: () => void }) {
 }
 
 
-export default function DoctorsPage() {
+function DoctorsPage() {
     const [data, setData] = React.useState<Doctor[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
     const [sorting, setSorting] = React.useState<SortingState>([])
@@ -325,3 +327,7 @@ export default function DoctorsPage() {
         </Card>
     )
 }
+
+
+const requiredRoles: UserRole[] = ["admin"];
+export default withAuth(DoctorsPage, requiredRoles);

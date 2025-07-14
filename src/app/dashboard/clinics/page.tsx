@@ -58,6 +58,8 @@ import {
 import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 import { DataTablePagination } from "@/components/ui/data-table-pagination"
+import withAuth from "@/components/auth/with-auth"
+import type { UserRole } from "@/context/auth-context"
 
 const mockClinics = [
     { id: "clinic-1", name: "Good Health Clinic", location: "Nairobi, Kenya", contact: "+254712345678", status: "Active" },
@@ -194,7 +196,7 @@ function AddClinicForm({ onFinished }: { onFinished: () => void }) {
     )
 }
 
-export default function ClinicsPage() {
+function ClinicsPage() {
     const [data, setData] = React.useState<Clinic[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
     const [sorting, setSorting] = React.useState<SortingState>([])
@@ -319,3 +321,6 @@ export default function ClinicsPage() {
         </Card>
     )
 }
+
+const requiredRoles: UserRole[] = ["admin", "doctor"];
+export default withAuth(ClinicsPage, requiredRoles);
