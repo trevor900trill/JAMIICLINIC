@@ -60,6 +60,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
+import { DataTablePagination } from "@/components/ui/data-table-pagination"
 
 const mockPatients = [
   { id: "pat-1", name: "Alice Johnson", email: "alice@example.com", phone: "+254711111111", lastVisit: "2024-05-10" },
@@ -369,23 +370,8 @@ export default function PatientsPage() {
                         </TableBody>
                     </Table>
                 </div>
-                <div className="flex items-center justify-end space-x-2 py-4">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
-                    >
-                        Previous
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
-                    >
-                        Next
-                    </Button>
+                 <div className="py-4">
+                    <DataTablePagination table={table} />
                 </div>
             </CardContent>
         </Card>

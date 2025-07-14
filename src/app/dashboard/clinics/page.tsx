@@ -57,6 +57,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
+import { DataTablePagination } from "@/components/ui/data-table-pagination"
 
 const mockClinics = [
     { id: "clinic-1", name: "Good Health Clinic", location: "Nairobi, Kenya", contact: "+254712345678", status: "Active" },
@@ -311,23 +312,8 @@ export default function ClinicsPage() {
                         </TableBody>
                     </Table>
                 </div>
-                <div className="flex items-center justify-end space-x-2 py-4">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
-                    >
-                        Previous
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
-                    >
-                        Next
-                    </Button>
+                <div className="py-4">
+                    <DataTablePagination table={table} />
                 </div>
             </CardContent>
         </Card>
