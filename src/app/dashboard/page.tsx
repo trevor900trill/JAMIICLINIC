@@ -8,6 +8,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/auth-context'
+import { cn } from '@/lib/utils'
 
 const getDashboardStats = (role: 'admin' | 'doctor' | 'staff') => {
   const baseStats = [
@@ -60,7 +61,10 @@ export default function DashboardPage() {
         <h1 className="text-3xl font-bold">Good morning, {user?.name}!</h1>
         <p className="text-muted-foreground">Here's a summary of your clinic's activity.</p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={cn(
+        "grid gap-4 sm:grid-cols-2",
+        stats.length === 3 ? "lg:grid-cols-3" : "lg:grid-cols-4"
+      )}>
         {stats.map((stat, index) => (
           <Card key={index}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
