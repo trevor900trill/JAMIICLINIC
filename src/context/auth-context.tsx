@@ -27,7 +27,6 @@ interface AuthContextType {
   logout: () => void;
   getAuthToken: () => string | null;
   refreshUser: (updates: Partial<User>) => Promise<void>;
-  skipOnboardingStep: (step: 'clinic_created' | 'staff_created') => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -97,45 +96,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return Promise.resolve();
   }
   
-  const skipOnboardingStep = async (step: 'clinic_created' | 'staff_created') => {
-    // This function is now a placeholder and can be rebuilt later.
-    await refreshUser({ [step]: true });
-    router.push('/dashboard');
-  }
-
   const login = async (email: string, pass: string): Promise<void> => {
-    setIsLoading(true);
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/login/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password: pass }),
-        });
+    const response = await fetch(`${API_BASE_URL}/api/login/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass }),
+    });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Login failed');
-        }
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Login failed');
+    }
 
-        const data = await response.json();
-        const { access: token, user: userData } = data;
-        
-        if (userData && token) {
-            const currentUser: User = {
-                id: userData.id,
-                name: `${userData.first_name} ${userData.last_name}`,
-                email: userData.email,
-                role: userData.role,
-                avatarUrl: `https://placehold.co/32x32.png`,
-                reset_initial_password: userData.reset_initial_password,
-            };
-            updateUserState(currentUser, token);
-            // Redirection is now handled by the useEffect hook
-        } else {
-            throw new Error("Login response did not contain user data or token.");
-        }
-    } finally {
-        setIsLoading(false);
+    const data = await response.json();
+    const { access: token, user: userData } = data;
+    
+    if (userData && token) {
+        const currentUser: User = {
+            id: userData.id,
+            name: `${userData.first_name} ${userData.last_name}`,
+            email: userData.email,
+            role: userData.role,
+            avatarUrl: `https://placehold.co/32x32.png`,
+            reset_initial_password: userData.reset_initial_password,
+        };
+        updateUserState(currentUser, token);
+        // Redirection is now handled by the useEffect hook
+    } else {
+        throw new Error("Login response did not contain user data or token.");
     }
   };
 
@@ -148,7 +136,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return authToken;
   }
   
-  if (isLoading) {
+  if (isLoading && !user) {
     return (
         <div className="flex h-screen items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -157,7 +145,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, getAuthToken, refreshUser, skipOnboardingStep }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, getAuthToken, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
