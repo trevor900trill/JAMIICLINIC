@@ -115,7 +115,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setAuthToken(token);
         setUser(currentUser);
         saveStateToStorage(currentUser, token);
-        // Let the withAuth HOC handle redirection
+        
+        // --- NEW REDIRECTION STRATEGY ---
+        // Directly navigate from here based on the API response.
+        if (reset_initial_password) {
+            router.push('/dashboard/change-password');
+        } else {
+            router.push('/dashboard');
+        }
     } else {
         throw new Error("Failed to decode token after login.");
     }
@@ -125,7 +132,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.clear();
     setUser(null);
     setAuthToken(null);
-    router.replace('/');
+    router.push('/');
   };
 
   const getAuthToken = () => {

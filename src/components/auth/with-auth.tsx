@@ -16,29 +16,31 @@ const withAuth = <P extends object>(
     const pathname = usePathname();
 
     useEffect(() => {
-      // Don't do anything while auth state is loading
       if (isLoading) {
         return;
       }
 
       const isAuthPage = pathname === '/';
+      const isChangePasswordPage = pathname === '/dashboard/change-password';
 
-      // If user is logged in
       if (user) {
-        // If they are on the login page, redirect them to the dashboard
+        // If the user is logged in, check for required onboarding steps or access control.
+        if (user.reset_initial_password && !isChangePasswordPage) {
+          router.replace('/dashboard/change-password');
+          return;
+        }
+
         if (isAuthPage) {
           router.replace('/dashboard');
           return;
         }
         
-        // Handle role-based access for protected routes
         if (requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
           router.replace('/not-found');
           return;
         }
       } else {
-        // If no user is logged in, and they are not on the login page,
-        // redirect them to the login page.
+        // If no user, redirect to login page if they aren't already there.
         if (!isAuthPage) {
           router.replace('/');
           return;
@@ -46,7 +48,6 @@ const withAuth = <P extends object>(
       }
     }, [user, isLoading, router, pathname, requiredRoles]);
 
-    // Show a global loading spinner while we determine auth state
     if (isLoading) {
       return (
         <div className="flex h-screen items-center justify-center">
@@ -57,11 +58,6 @@ const withAuth = <P extends object>(
     
     // Prevent rendering protected pages if user is not authenticated yet.
     if (!user && pathname !== '/') {
-        return null;
-    }
-    
-    // Prevent rendering the login page if the user is already logged in (and redirect is in progress).
-    if (user && pathname === '/') {
         return null;
     }
 
