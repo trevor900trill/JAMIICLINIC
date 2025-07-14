@@ -88,36 +88,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const isPublicPage = PUBLIC_ROUTES.includes(pathname);
     const isOnboardingPage = ONBOARDING_ROUTES.includes(pathname);
     
-    if (!user && !isPublicPage) {
-        router.replace('/');
+    if (!user) {
+        if (!isPublicPage) {
+            router.replace('/');
+        }
         return;
     }
 
-    if (user) {
-        if (user.reset_initial_password) {
-            if (pathname !== '/change-password') router.replace('/change-password');
+    // User is logged in, handle redirects
+    if (user.reset_initial_password) {
+        if (pathname !== '/change-password') {
+            router.replace('/change-password');
+        }
+        return;
+    }
+
+    if (user.role === 'doctor') {
+        if (!user.specialty_set) {
+            if (pathname !== '/set-specialty') {
+                router.replace('/set-specialty');
+            }
             return;
         }
-
-        if (user.role === 'doctor') {
-            if (!user.specialty_set) {
-                if (pathname !== '/set-specialty') router.replace('/set-specialty');
-                return;
+        if (!user.clinic_created) {
+            if (pathname !== '/onboarding/create-clinic') {
+                router.replace('/onboarding/create-clinic');
             }
-            if (!user.clinic_created) {
-                if (pathname !== '/onboarding/create-clinic') router.replace('/onboarding/create-clinic');
-                return;
-            }
-            if (!user.staff_created) {
-                if (pathname !== '/onboarding/create-staff') router.replace('/onboarding/create-staff');
-                return;
-            }
+            return;
         }
-        
-        // If user is fully onboarded, redirect from public/onboarding pages to dashboard
-        if (isPublicPage || isOnboardingPage) {
-            router.replace('/dashboard');
+        if (!user.staff_created) {
+            if (pathname !== '/onboarding/create-staff') {
+                router.replace('/onboarding/create-staff');
+            }
+            return;
         }
+    }
+    
+    // If user is fully onboarded, redirect from public/onboarding pages to dashboard
+    if (isPublicPage || isOnboardingPage) {
+        router.replace('/dashboard');
     }
 
   }, [user, isLoading, pathname, router]);
@@ -125,6 +134,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const refreshUser = async (updates: Partial<User>) => {
     const updatedUser = user ? { ...user, ...updates } : null;
     updateUserState(updatedUser, authToken);
+    return Promise.resolve();
   }
   
   const skipOnboardingStep = async (step: 'clinic_created' | 'staff_created') => {
@@ -132,50 +142,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const login = async (email: string, pass: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/api/login/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: pass }),
-    });
+    setIsLoading(true);
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/login/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password: pass }),
+        });
 
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Login failed');
-    }
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Login failed');
+        }
 
-    const data = await response.json();
-    const { access: token, reset_initial_password, specialty_set, clinic_created, staff_created } = data;
-    const decodedUser = jwtDecode(token);
-    
-    if (decodedUser) {
-        const currentUser: User = {
-            id: decodedUser.user_id,
-            name: decodedUser.name,
-            email: decodedUser.email,
-            role: decodedUser.role,
-            avatarUrl: `https://placehold.co/32x32.png`,
-            reset_initial_password: reset_initial_password,
-            specialty_set: specialty_set || false,
-            clinic_created: clinic_created || false,
-            staff_created: staff_created || false,
-        };
-        updateUserState(currentUser, token);
-    } else {
-        throw new Error("Failed to decode token after login.");
+        const data = await response.json();
+        const { access: token, reset_initial_password, specialty_set, clinic_created, staff_created } = data;
+        const decodedUser = jwtDecode(token);
+        
+        if (decodedUser) {
+            const currentUser: User = {
+                id: decodedUser.user_id,
+                name: decodedUser.name,
+                email: decodedUser.email,
+                role: decodedUser.role,
+                avatarUrl: `https://placehold.co/32x32.png`,
+                reset_initial_password: reset_initial_password,
+                specialty_set: specialty_set || false,
+                clinic_created: clinic_created || false,
+                staff_created: staff_created || false,
+            };
+            updateUserState(currentUser, token);
+        } else {
+            throw new Error("Failed to decode token after login.");
+        }
+    } finally {
+        setIsLoading(false);
     }
   };
 
   const logout = () => {
     updateUserState(null, null);
-    router.replace('/');
+    router.push('/');
   };
 
   const getAuthToken = () => {
     return authToken;
   }
   
-  const isProtectedRoute = !PUBLIC_ROUTES.includes(pathname) && !ONBOARDING_ROUTES.includes(pathname);
-  if (isLoading || (!user && isProtectedRoute)) {
+  if (isLoading) {
     return (
         <div className="flex h-screen items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
