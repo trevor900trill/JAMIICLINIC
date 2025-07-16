@@ -65,7 +65,7 @@ import { useApi } from "@/hooks/use-api"
 
 // Based on API Spec. A patient record in a clinic context.
 export type Patient = {
-  patient_id: number;
+  id: number;
   clinic_id: number;
   clinic_name: string;
   first_name: string;
@@ -81,7 +81,7 @@ const patientSchema = z.object({
   last_name: z.string().min(1, "Last name is required"),
   gender: z.enum(["male", "female"], { required_error: "Please select a gender." }),
   telephone: z.string().min(10, "Please enter a valid phone number."),
-  clinic_id: z.number().int().positive().optional(),
+  clinic_id: z.coerce.number().int().positive("Please select a clinic"),
 })
 
 function AddPatientForm({ onFinished }: { onFinished: () => void }) {
@@ -103,7 +103,7 @@ function AddPatientForm({ onFinished }: { onFinished: () => void }) {
   async function onSubmit(values: z.infer<typeof patientSchema>) {
     setIsLoading(true)
     try {
-      const response = await apiFetch('/api/patients/create/', {
+      const response = await apiFetch('/api/patients/create', {
         method: 'POST',
         body: JSON.stringify(values)
       });
@@ -292,16 +292,19 @@ function PatientsPage() {
 
     const fetchPatients = React.useCallback(async () => {
         setIsLoading(true);
-        // NOTE: The swagger spec does not define an endpoint to LIST patients.
-        // I'm assuming it might be /api/patients/ or that it's embedded elsewhere.
-        // For now, I will use `/api/clinics/staff/` and filter for patients if any, or show empty.
-        // This should be updated when a real patient list endpoint is available.
-        setData([]); // Default to empty
-        setIsLoading(false);
-        toast({
-            title: "Patient List Notice",
-            description: "No endpoint to list all patients was found. Displaying empty table.",
-        });
+        try {
+            const response = await apiFetch('/api/management/patients');
+             if (!response.ok) {
+                throw new Error("Failed to fetch patients.");
+            }
+            const patientsData = await response.json();
+            setData(patientsData);
+        } catch (error) {
+             if (error instanceof Error && error.message === "Unauthorized") return;
+             toast({ variant: "destructive", title: "Error", description: "Could not fetch patient data." });
+        } finally {
+            setIsLoading(false);
+        }
     }, [toast, apiFetch]);
 
     React.useEffect(() => {
@@ -387,7 +390,7 @@ function PatientsPage() {
                                 ) : table.getRowModel().rows?.length ? (
                                     table.getRowModel().rows.map((row) => (
                                         <TableRow
-                                            key={row.original.patient_id}
+                                            key={row.original.id}
                                             data-state={row.getIsSelected() && "selected"}
                                         >
                                             {row.getVisibleCells().map((cell) => (

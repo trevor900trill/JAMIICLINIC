@@ -272,7 +272,7 @@ function DoctorsPage() {
     const fetchDoctors = React.useCallback(async () => {
         setIsLoading(true);
         try {
-            const response = await apiFetch('/api/users/doctors/');
+            const response = await apiFetch('/api/management/doctors');
             if (!response.ok) throw new Error("Failed to fetch doctors");
             const doctorsData = await response.json();
             setData(doctorsData);
