@@ -261,7 +261,7 @@ function AddUserForm({ onFinished }: { onFinished: () => void }) {
                         <FormItem><FormLabel>Telephone</FormLabel><FormControl><Input placeholder="+254..." {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                      <FormField control={form.control} name="gender" render={({ field }) => (
-                        <FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                     )} />
                      <FormField control={form.control} name="position" render={({ field }) => (
                         <FormItem><FormLabel>Position</FormLabel><FormControl><Input placeholder="e.g. Nurse" {...field} /></FormControl><FormMessage /></FormItem>
@@ -269,7 +269,7 @@ function AddUserForm({ onFinished }: { onFinished: () => void }) {
                      <FormField control={form.control} name="clinic_id" render={({ field }) => (
                         <FormItem>
                             <FormLabel>Clinic</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value?.toString() ?? ""} disabled={isFetchingClinics || clinics.length === 0}>
+                            <Select onValueChange={field.onChange} value={field.value?.toString() ?? ""} disabled={isFetchingClinics || clinics.length === 0}>
                                 <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder={isFetchingClinics ? "Loading clinics..." : "Select a clinic"} />
@@ -442,3 +442,5 @@ function UsersPage() {
 }
 
 export default UsersPage;
+
+    
