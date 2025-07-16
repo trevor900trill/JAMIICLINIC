@@ -15,11 +15,14 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { ArrowUpDown, MoreHorizontal, PlusCircle, Loader2 } from "lucide-react"
+import { ArrowUpDown, MoreHorizontal, PlusCircle, Loader2, CalendarIcon } from "lucide-react"
+import { format } from "date-fns"
+import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import {
     Table,
     TableBody,
@@ -58,10 +61,13 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
 import { useToast } from "@/hooks/use-toast"
 import { DataTablePagination } from "@/components/ui/data-table-pagination"
 import { useAuth } from "@/context/auth-context"
 import { useApi } from "@/hooks/use-api"
+import { cn } from "@/lib/utils"
 
 // Based on API Spec. A patient record in a clinic context.
 export type Patient = {
@@ -82,6 +88,13 @@ const patientSchema = z.object({
   gender: z.enum(["male", "female"], { required_error: "Please select a gender." }),
   telephone: z.string().min(10, "Please enter a valid phone number."),
   clinic_id: z.coerce.number().int().positive("Please select a clinic"),
+})
+
+const medicalCaseSchema = z.object({
+    title: z.string().min(1, "Case title is required."),
+    description: z.string().min(1, "Description is required."),
+    case_date: z.date({ required_error: "A case date is required."}),
+    initial_note: z.string().optional(),
 })
 
 function AddPatientForm({ onFinished }: { onFinished: () => void }) {
@@ -110,7 +123,6 @@ function AddPatientForm({ onFinished }: { onFinished: () => void }) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        // Handle nested errors from Django REST Framework
         const errorMessages = Object.values(errorData).flat().join(' ');
         throw new Error(errorMessages || "Failed to create patient.");
       }
@@ -201,6 +213,92 @@ function AddPatientForm({ onFinished }: { onFinished: () => void }) {
   )
 }
 
+function CreateMedicalCaseForm({ patient, onFinished }: { patient: Patient, onFinished: () => void }) {
+    const { toast } = useToast()
+    const { apiFetch } = useApi()
+    const [isLoading, setIsLoading] = React.useState(false)
+
+    const form = useForm<z.infer<typeof medicalCaseSchema>>({
+        resolver: zodResolver(medicalCaseSchema),
+        defaultValues: {
+            case_date: new Date(),
+        }
+    })
+
+    async function onSubmit(values: z.infer<typeof medicalCaseSchema>) {
+        setIsLoading(true)
+        try {
+            const records = values.initial_note ? [{ record_type: "general", note: values.initial_note }] : [];
+            const payload = {
+                ...values,
+                patient: patient.id,
+                clinic_id: patient.clinic_id,
+                case_date: format(values.case_date, "yyyy-MM-dd"),
+                is_active: true,
+                records: records,
+            };
+            delete (payload as any).initial_note;
+
+            const response = await apiFetch('/api/patients/create/medical-cases/', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || "Failed to create medical case.");
+            }
+
+            toast({ title: "Success", description: "New medical case has been created." })
+            form.reset()
+            onFinished()
+        } catch (error) {
+            if (error instanceof Error && error.message === "Unauthorized") return;
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+            toast({ variant: "destructive", title: "Error", description: errorMessage });
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+                <DialogHeader>
+                    <DialogTitle>New Medical Case for {patient.first_name} {patient.last_name}</DialogTitle>
+                    <DialogDescription>Fill in the details for the new medical case.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <FormField control={form.control} name="title" render={({ field }) => (
+                        <FormItem><FormLabel>Case Title</FormLabel><FormControl><Input placeholder="e.g., Annual Checkup" {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="description" render={({ field }) => (
+                        <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Describe the reason for the visit or the main complaint." {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="case_date" render={({ field }) => (
+                        <FormItem className="flex flex-col"><FormLabel>Case Date</FormLabel><Popover><PopoverTrigger asChild>
+                            <FormControl>
+                                <Button variant={"outline"} className={cn("w-[240px] pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                            </FormControl>
+                        </PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="initial_note" render={({ field }) => (
+                        <FormItem><FormLabel>Initial Note (Optional)</FormLabel><FormControl><Textarea placeholder="Add an initial observation or note for this case." {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                </div>
+                <DialogFooter>
+                    <Button type="submit" disabled={isLoading}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Create Case
+                    </Button>
+                </DialogFooter>
+            </form>
+        </Form>
+    )
+}
+
 function DeletePatientDialog() {
     return (
         <AlertDialog>
@@ -260,22 +358,37 @@ export const columns: ColumnDef<Patient>[] = [
     id: "actions",
     enableHiding: false,
     cell: ({ row }) => {
+      const patient = row.original;
+      const [isCaseFormOpen, setIsCaseFormOpen] = React.useState(false);
+
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem>View Record</DropdownMenuItem>
-            <DropdownMenuItem>Edit Details</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DeletePatientDialog />
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <>
+            <Dialog open={isCaseFormOpen} onOpenChange={setIsCaseFormOpen}>
+                <DialogContent>
+                    <CreateMedicalCaseForm patient={patient} onFinished={() => setIsCaseFormOpen(false)} />
+                </DialogContent>
+            </Dialog>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem asChild>
+                    <Link href={`/dashboard/patients/${patient.id}`}>View Record</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setIsCaseFormOpen(true)}>
+                    Create Case
+                </DropdownMenuItem>
+                <DropdownMenuItem>Edit Details</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DeletePatientDialog />
+              </DropdownMenuContent>
+            </DropdownMenu>
+        </>
       )
     },
   },
@@ -358,61 +471,59 @@ function PatientsPage() {
                         </DialogContent>
                     </Dialog>
                 </div>
-                <div className="overflow-x-auto">
-                    <div className="rounded-md border">
-                        <Table>
-                            <TableHeader>
-                                {table.getHeaderGroups().map((headerGroup) => (
-                                    <TableRow key={headerGroup.id}>
-                                        {headerGroup.headers.map((header) => (
-                                            <TableHead key={header.id}>
-                                                {header.isPlaceholder
-                                                    ? null
-                                                    : flexRender(
-                                                        header.column.columnDef.header,
-                                                        header.getContext()
-                                                    )}
-                                            </TableHead>
+                <div className="rounded-md border">
+                    <Table>
+                        <TableHeader>
+                            {table.getHeaderGroups().map((headerGroup) => (
+                                <TableRow key={headerGroup.id}>
+                                    {headerGroup.headers.map((header) => (
+                                        <TableHead key={header.id}>
+                                            {header.isPlaceholder
+                                                ? null
+                                                : flexRender(
+                                                    header.column.columnDef.header,
+                                                    header.getContext()
+                                                )}
+                                        </TableHead>
+                                    ))}
+                                </TableRow>
+                            ))}
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                                       <div className="flex justify-center items-center">
+                                          <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
+                                          <span>Loading patients...</span>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ) : table.getRowModel().rows?.length ? (
+                                table.getRowModel().rows.map((row) => (
+                                    <TableRow
+                                        key={row.original.id}
+                                        data-state={row.getIsSelected() && "selected"}
+                                    >
+                                        {row.getVisibleCells().map((cell) => (
+                                            <TableCell key={cell.id}>
+                                                {flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext()
+                                                )}
+                                            </TableCell>
                                         ))}
                                     </TableRow>
-                                ))}
-                            </TableHeader>
-                            <TableBody>
-                                {isLoading ? (
-                                    <TableRow>
-                                        <TableCell colSpan={columns.length} className="h-24 text-center">
-                                           <div className="flex justify-center items-center">
-                                              <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
-                                              <span>Loading patients...</span>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ) : table.getRowModel().rows?.length ? (
-                                    table.getRowModel().rows.map((row) => (
-                                        <TableRow
-                                            key={row.original.id}
-                                            data-state={row.getIsSelected() && "selected"}
-                                        >
-                                            {row.getVisibleCells().map((cell) => (
-                                                <TableCell key={cell.id}>
-                                                    {flexRender(
-                                                        cell.column.columnDef.cell,
-                                                        cell.getContext()
-                                                    )}
-                                                </TableCell>
-                                            ))}
-                                        </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={columns.length} className="h-24 text-center">
-                                            No patient data available.
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                                        No patient data available.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
                 </div>
                 <div className="py-4">
                     <DataTablePagination table={table} />
@@ -423,3 +534,5 @@ function PatientsPage() {
 }
 
 export default PatientsPage;
+
+    
