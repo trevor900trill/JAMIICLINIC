@@ -269,7 +269,7 @@ function AddUserForm({ onFinished }: { onFinished: () => void }) {
                      <FormField control={form.control} name="clinic_id" render={({ field }) => (
                         <FormItem>
                             <FormLabel>Clinic</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value?.toString()} disabled={isFetchingClinics || clinics.length === 0}>
+                            <Select onValueChange={field.onChange} defaultValue={field.value?.toString()}>
                                 <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder={isFetchingClinics ? "Loading clinics..." : "Select a clinic"} />
