@@ -396,6 +396,7 @@ export const columns: ColumnDef<Patient>[] = [
     cell: ({ row }) => {
       const patient = row.original;
       const [isCaseFormOpen, setIsCaseFormOpen] = React.useState(false);
+      const { user } = useAuth();
 
       return (
         <>
@@ -416,9 +417,11 @@ export const columns: ColumnDef<Patient>[] = [
                 <DropdownMenuItem asChild>
                     <Link href={`/dashboard/patients/${patient.id}`}>View Record</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setIsCaseFormOpen(true)}>
-                    Create Case
-                </DropdownMenuItem>
+                {(user?.role === 'doctor' || user?.role === 'staff') && (
+                  <DropdownMenuItem onSelect={() => setIsCaseFormOpen(true)}>
+                      Create Case
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem>Edit Details</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DeletePatientDialog />
@@ -431,6 +434,7 @@ export const columns: ColumnDef<Patient>[] = [
 ]
 
 function PatientsPage() {
+    const { user } = useAuth();
     const { apiFetch } = useApi();
     const { toast } = useToast();
     const [data, setData] = React.useState<Patient[]>([])
@@ -496,16 +500,18 @@ function PatientsPage() {
                         }
                         className="w-full sm:max-w-sm"
                     />
-                    <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                        <DialogTrigger asChild>
-                           <Button className="w-full sm:w-auto">
-                                <PlusCircle className="mr-2 h-4 w-4" /> Add Patient
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-2xl">
-                             <AddPatientForm onFinished={onFormFinished} />
-                        </DialogContent>
-                    </Dialog>
+                    {(user?.role === 'doctor' || user?.role === 'staff') && (
+                        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                            <DialogTrigger asChild>
+                               <Button className="w-full sm:w-auto">
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Add Patient
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-2xl">
+                                 <AddPatientForm onFinished={onFormFinished} />
+                            </DialogContent>
+                        </Dialog>
+                    )}
                 </div>
                 <div className="overflow-x-auto">
                     <div className="rounded-md border">
@@ -572,4 +578,3 @@ function PatientsPage() {
 }
 
 export default PatientsPage;
-

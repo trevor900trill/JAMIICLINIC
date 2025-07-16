@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, User, Mail, Phone, Home, FileText, Calendar, PlusCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/auth-context";
 
 type PatientDetails = {
     id: number;
@@ -33,6 +34,7 @@ type MedicalCase = {
 
 function PatientDetailPage() {
     const { id } = useParams();
+    const { user } = useAuth();
     const { apiFetch } = useApi();
     const { toast } = useToast();
     const [patient, setPatient] = React.useState<PatientDetails | null>(null);
@@ -141,10 +143,12 @@ function PatientDetailPage() {
                             <CardTitle>Medical Cases</CardTitle>
                             <CardDescription>All recorded medical cases for this patient.</CardDescription>
                         </div>
-                        <Button size="sm">
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            New Case
-                        </Button>
+                         {(user?.role === 'doctor' || user?.role === 'staff') && (
+                            <Button size="sm">
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                New Case
+                            </Button>
+                        )}
                     </CardHeader>
                     <CardContent>
                         {cases.length > 0 ? (
@@ -186,5 +190,3 @@ function PatientDetailPage() {
 }
 
 export default PatientDetailPage;
-
-    
