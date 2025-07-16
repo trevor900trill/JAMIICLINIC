@@ -87,7 +87,7 @@ const patientSchema = z.object({
   last_name: z.string().min(1, "Last name is required"),
   gender: z.enum(["male", "female"], { required_error: "Please select a gender." }),
   telephone: z.string().min(10, "Please enter a valid phone number."),
-  clinic_id: z.coerce.number().int().positive("Please select a clinic"),
+  clinic_id: z.coerce.number({invalid_type_error: "Please select a clinic"}).int().positive("Please select a clinic"),
 })
 
 const medicalCaseSchema = z.object({
@@ -97,11 +97,38 @@ const medicalCaseSchema = z.object({
     initial_note: z.string().optional(),
 })
 
+type Clinic = {
+  id: number;
+  name: string;
+}
+
 function AddPatientForm({ onFinished }: { onFinished: () => void }) {
   const { toast } = useToast()
   const { apiFetch } = useApi()
   const [isLoading, setIsLoading] = React.useState(false)
-  const { user } = useAuth()
+  const [clinics, setClinics] = React.useState<Clinic[]>([])
+  const [isFetchingClinics, setIsFetchingClinics] = React.useState(true)
+
+  React.useEffect(() => {
+    async function fetchClinics() {
+        setIsFetchingClinics(true);
+        try {
+            const response = await apiFetch('/api/clinics/');
+            if (!response.ok) {
+                throw new Error("Could not fetch clinics.");
+            }
+            const clinicData = await response.json();
+            setClinics(clinicData);
+        } catch (error) {
+            if (error instanceof Error && error.message === "Unauthorized") return;
+            toast({ variant: "destructive", title: "Error", description: "Could not load your clinics." });
+        } finally {
+            setIsFetchingClinics(false);
+        }
+    }
+    fetchClinics();
+  }, [apiFetch, toast]);
+
 
   const form = useForm<z.infer<typeof patientSchema>>({
     resolver: zodResolver(patientSchema),
@@ -192,18 +219,27 @@ function AddPatientForm({ onFinished }: { onFinished: () => void }) {
                 <FormMessage />
               </FormItem>
             )} />
-             {user?.role === "doctor" && (
-                <FormField control={form.control} name="clinic_id" render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Clinic ID</FormLabel>
-                    <FormControl><Input type="number" placeholder="Enter Clinic ID" onChange={e => field.onChange(parseInt(e.target.value, 10))} /></FormControl>
-                    <FormMessage />
-                </FormItem>
-                )} />
-            )}
+            <FormField control={form.control} name="clinic_id" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Clinic</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value?.toString()} disabled={isFetchingClinics || clinics.length === 0}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder={isFetchingClinics ? "Loading clinics..." : "Select a clinic"} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {!isFetchingClinics && clinics.map((clinic) => (
+                      <SelectItem key={clinic.id} value={String(clinic.id)}>{clinic.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )} />
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || isFetchingClinics}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLoading ? "Saving..." : "Save Patient"}
             </Button>
@@ -537,4 +573,3 @@ function PatientsPage() {
 
 export default PatientsPage;
 
-    
