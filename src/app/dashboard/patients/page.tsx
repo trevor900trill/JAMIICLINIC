@@ -99,9 +99,9 @@ const medicalCaseSchema = z.object({
 
 function AddPatientForm({ onFinished }: { onFinished: () => void }) {
   const { toast } = useToast()
+  const { apiFetch } = useApi()
   const [isLoading, setIsLoading] = React.useState(false)
   const { user } = useAuth()
-  const { apiFetch } = useApi()
 
   const form = useForm<z.infer<typeof patientSchema>>({
     resolver: zodResolver(patientSchema),
@@ -142,7 +142,7 @@ function AddPatientForm({ onFinished }: { onFinished: () => void }) {
   return (
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-           <DialogHeader>
+          <DialogHeader>
             <DialogTitle>Create New Patient</DialogTitle>
             <DialogDescription>Add a new patient record to the system. All fields are required.</DialogDescription>
           </DialogHeader>
@@ -471,59 +471,61 @@ function PatientsPage() {
                         </DialogContent>
                     </Dialog>
                 </div>
-                <div className="rounded-md border">
-                    <Table>
-                        <TableHeader>
-                            {table.getHeaderGroups().map((headerGroup) => (
-                                <TableRow key={headerGroup.id}>
-                                    {headerGroup.headers.map((header) => (
-                                        <TableHead key={header.id}>
-                                            {header.isPlaceholder
-                                                ? null
-                                                : flexRender(
-                                                    header.column.columnDef.header,
-                                                    header.getContext()
-                                                )}
-                                        </TableHead>
-                                    ))}
-                                </TableRow>
-                            ))}
-                        </TableHeader>
-                        <TableBody>
-                            {isLoading ? (
-                                <TableRow>
-                                    <TableCell colSpan={columns.length} className="h-24 text-center">
-                                       <div className="flex justify-center items-center">
-                                          <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
-                                          <span>Loading patients...</span>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ) : table.getRowModel().rows?.length ? (
-                                table.getRowModel().rows.map((row) => (
-                                    <TableRow
-                                        key={row.original.id}
-                                        data-state={row.getIsSelected() && "selected"}
-                                    >
-                                        {row.getVisibleCells().map((cell) => (
-                                            <TableCell key={cell.id}>
-                                                {flexRender(
-                                                    cell.column.columnDef.cell,
-                                                    cell.getContext()
-                                                )}
-                                            </TableCell>
+                <div className="overflow-x-auto">
+                    <div className="rounded-md border">
+                        <Table>
+                            <TableHeader>
+                                {table.getHeaderGroups().map((headerGroup) => (
+                                    <TableRow key={headerGroup.id}>
+                                        {headerGroup.headers.map((header) => (
+                                            <TableHead key={header.id}>
+                                                {header.isPlaceholder
+                                                    ? null
+                                                    : flexRender(
+                                                        header.column.columnDef.header,
+                                                        header.getContext()
+                                                    )}
+                                            </TableHead>
                                         ))}
                                     </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={columns.length} className="h-24 text-center">
-                                        No patient data available.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                                ))}
+                            </TableHeader>
+                            <TableBody>
+                                {isLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={columns.length} className="h-24 text-center">
+                                           <div className="flex justify-center items-center">
+                                              <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
+                                              <span>Loading patients...</span>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : table.getRowModel().rows?.length ? (
+                                    table.getRowModel().rows.map((row) => (
+                                        <TableRow
+                                            key={row.original.id}
+                                            data-state={row.getIsSelected() && "selected"}
+                                        >
+                                            {row.getVisibleCells().map((cell) => (
+                                                <TableCell key={cell.id}>
+                                                    {flexRender(
+                                                        cell.column.columnDef.cell,
+                                                        cell.getContext()
+                                                    )}
+                                                </TableCell>
+                                            ))}
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={columns.length} className="h-24 text-center">
+                                            No patient data available.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </div>
                 <div className="py-4">
                     <DataTablePagination table={table} />
@@ -535,3 +537,4 @@ function PatientsPage() {
 
 export default PatientsPage;
 
+    

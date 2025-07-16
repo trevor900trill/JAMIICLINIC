@@ -275,7 +275,7 @@ function DoctorsPage() {
             const response = await apiFetch('/api/management/doctors');
             if (!response.ok) throw new Error("Failed to fetch doctors");
             const doctorsData = await response.json();
-            setData(doctorsData);
+            setData(doctorsData.results);
 
         } catch (error) {
              if (error instanceof Error && error.message === "Unauthorized") return;
@@ -404,3 +404,5 @@ function DoctorsPage() {
 }
 
 export default DoctorsPage;
+
+    
