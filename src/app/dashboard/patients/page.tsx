@@ -444,9 +444,18 @@ function PatientsPage() {
     const [isFormOpen, setIsFormOpen] = React.useState(false);
 
     const fetchPatients = React.useCallback(async () => {
+        if (!user) return;
         setIsLoading(true);
+
+        let endpoint = '/api/management/patients'; // Default for admin
+        if (user.role === 'doctor') {
+            endpoint = '/api/clinics/doctor/patients/';
+        } else if (user.role === 'staff') {
+            endpoint = '/api/clinics/staff/patients/';
+        }
+
         try {
-            const response = await apiFetch('/api/management/patients');
+            const response = await apiFetch(endpoint);
              if (!response.ok) {
                 throw new Error("Failed to fetch patients.");
             }
@@ -458,7 +467,7 @@ function PatientsPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [toast, apiFetch]);
+    }, [toast, apiFetch, user]);
 
     React.useEffect(() => {
         fetchPatients()
@@ -578,3 +587,5 @@ function PatientsPage() {
 }
 
 export default PatientsPage;
+
+    
