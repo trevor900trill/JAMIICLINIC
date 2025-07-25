@@ -543,7 +543,7 @@ function PatientsPage() {
                             </TableHeader>
                             <TableBody>
                                 {isLoading ? (
-                                    <TableRow>
+                                    <TableRow key="loading">
                                         <TableCell colSpan={columns.length} className="h-24 text-center">
                                            <div className="flex justify-center items-center">
                                               <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
@@ -568,7 +568,7 @@ function PatientsPage() {
                                         </TableRow>
                                     ))
                                 ) : (
-                                    <TableRow>
+                                    <TableRow key="no-results">
                                         <TableCell colSpan={columns.length} className="h-24 text-center">
                                             No patient data available.
                                         </TableCell>
