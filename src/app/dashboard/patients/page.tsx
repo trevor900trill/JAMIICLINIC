@@ -264,7 +264,10 @@ function CreateMedicalCaseForm({ patient, onFinished }: { patient: Patient, onFi
     const form = useForm<z.infer<typeof medicalCaseSchema>>({
         resolver: zodResolver(medicalCaseSchema),
         defaultValues: {
+            title: "",
+            description: "",
             case_date: new Date(),
+            initial_note: "",
         }
     })
 
@@ -637,5 +640,3 @@ function PatientsPage() {
 }
 
 export default PatientsPage;
-
-    
