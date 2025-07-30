@@ -15,7 +15,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { ArrowUpDown, MoreHorizontal, PlusCircle, Loader2 } from "lucide-react"
+import { ArrowUpDown, MoreHorizontal, PlusCircle, Loader2, Eye } from "lucide-react"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
@@ -280,25 +280,26 @@ export const columns: ColumnDef<Patient>[] = [
       const patient = row.original;
       
       return (
-        <div className="flex justify-start">
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">Open menu</span>
-                    <MoreHorizontal className="h-4 w-4" />
-                </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem asChild>
-                    <Link href={`/dashboard/patients/${patient.id}/cases`}>View Cases</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>Edit Details</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DeletePatientDialog />
-                </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+            </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem asChild>
+                <Link href={`/dashboard/patients/${patient.id}/cases`}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Cases
+                </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem>Edit Details</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DeletePatientDialog />
+            </DropdownMenuContent>
+        </DropdownMenu>
       )
     },
   },
@@ -309,7 +310,10 @@ function PatientsPage() {
     const { apiFetch } = useApi();
     const { toast } = useToast();
     const { selectedClinic } = useClinic();
-    const [data, setData] = React.useState<Patient[]>([])
+    
+    const [allPatients, setAllPatients] = React.useState<Patient[]>([])
+    const [filteredPatients, setFilteredPatients] = React.useState<Patient[]>([])
+    
     const [isLoading, setIsLoading] = React.useState(true)
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -318,13 +322,6 @@ function PatientsPage() {
     const fetchPatients = React.useCallback(async () => {
         if (!user) return;
         
-        // For doctors/staff, if no clinic is selected, don't fetch.
-        if (user.role !== 'admin' && !selectedClinic) {
-            setData([]);
-            setIsLoading(false);
-            return;
-        }
-
         setIsLoading(true);
 
         let endpoint = '/api/management/patients/'; 
@@ -342,20 +339,18 @@ function PatientsPage() {
             const responseData = await response.json();
             
             if (user.role === 'admin') {
-                setData(responseData.results);
+                setAllPatients(responseData.results);
             } else {
-                // Find the data for the selected clinic
-                const clinicData = responseData.find((c: any) => c.clinic_id === selectedClinic!.clinic_id);
-                if (clinicData) {
-                    const patientsWithClinicInfo = clinicData.patients.map((p: Patient) => ({
+                // For doctors and staff, the response is an array of clinics
+                // We will flatten this into a single list of patients
+                const allPatientsFromClinics = responseData.flatMap((clinic: any) => 
+                    clinic.patients.map((p: Patient) => ({
                         ...p,
-                        clinic_id: clinicData.clinic_id,
-                        clinic_name: clinicData.clinic_name,
-                    }));
-                    setData(patientsWithClinicInfo);
-                } else {
-                    setData([]); // No data for this clinic
-                }
+                        clinic_id: clinic.clinic_id,
+                        clinic_name: clinic.clinic_name,
+                    }))
+                );
+                setAllPatients(allPatientsFromClinics);
             }
         } catch (error) {
              if (error instanceof Error && error.message === "Unauthorized") return;
@@ -363,14 +358,27 @@ function PatientsPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [toast, apiFetch, user, selectedClinic]);
+    }, [toast, apiFetch, user]);
 
     React.useEffect(() => {
         fetchPatients()
     }, [fetchPatients])
     
+    React.useEffect(() => {
+        if (user?.role === 'admin' && selectedClinic) {
+            const filtered = allPatients.filter(p => p.clinic_id === selectedClinic.clinic_id);
+            setFilteredPatients(filtered);
+        } else if (user?.role !== 'admin' && selectedClinic) {
+            const filtered = allPatients.filter(p => p.clinic_id === selectedClinic.clinic_id);
+            setFilteredPatients(filtered);
+        }
+        else {
+            setFilteredPatients(allPatients);
+        }
+    }, [selectedClinic, allPatients, user?.role]);
+
     const table = useReactTable({
-        data,
+        data: filteredPatients,
         columns,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
@@ -390,6 +398,7 @@ function PatientsPage() {
     }
     
     const canAddPatient = user?.role === 'doctor' || user?.role === 'staff';
+    const showNoClinicSelectedMessage = user?.role !== 'admin' && !selectedClinic && !isLoading;
 
     return (
         <Card>
@@ -470,7 +479,7 @@ function PatientsPage() {
                                 ) : (
                                     <TableRow key="no-results">
                                         <TableCell colSpan={columns.length} className="h-24 text-center">
-                                            {user?.role !== 'admin' && !selectedClinic ? "Please select a clinic to view patients." : "No patient data available."}
+                                            {showNoClinicSelectedMessage ? "Please select a clinic to view patients." : "No patient data available."}
                                         </TableCell>
                                     </TableRow>
                                 )}

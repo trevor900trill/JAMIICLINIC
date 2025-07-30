@@ -55,6 +55,8 @@ export function Header() {
     const clinicId = parseInt(clinicIdStr, 10);
     setSelectedClinicId(clinicId);
   };
+  
+  const showClinicSelector = user.role === 'admin' || user.role === 'doctor';
 
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
@@ -93,9 +95,9 @@ export function Header() {
       
       <h1 className="text-xl font-semibold">{pageTitle}</h1>
       
-      {user.role !== 'admin' && (
+      {showClinicSelector && (
         <div className="ml-4">
-            <Select onValueChange={handleClinicChange} value={selectedClinic?.clinic_id.toString()} disabled={isLoading || clinics.length === 0}>
+            <Select onValueChange={handleClinicChange} value={selectedClinic?.clinic_id.toString() ?? "all"} disabled={isLoading || clinics.length === 0}>
               <SelectTrigger className="w-full sm:w-[280px]">
                   <div className="flex items-center gap-2">
                       <Building className="h-4 w-4 text-muted-foreground" />
@@ -103,6 +105,7 @@ export function Header() {
                   </div>
               </SelectTrigger>
               <SelectContent>
+                  {user.role === 'admin' && <SelectItem value="all">All Clinics</SelectItem>}
                   {clinics.map((clinic) => (
                       <SelectItem key={clinic.clinic_id} value={String(clinic.clinic_id)}>
                           {clinic.clinic_name}
@@ -113,29 +116,31 @@ export function Header() {
         </div>
       )}
 
-      <Badge variant="outline" className="hidden sm:flex items-center gap-2 capitalize ml-auto">
-          <UserCog className="h-4 w-4" />
-          {user.role}
-      </Badge>
-      
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon" className="overflow-hidden rounded-full">
-            <Avatar>
-              <AvatarImage src={user.avatarUrl} alt="User avatar" data-ai-hint="person portrait" />
-              <AvatarFallback>{user.name ? user.name.split(' ').map(n => n[0]).join('') : 'U'}</AvatarFallback>
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>Settings</DropdownMenuItem>
-          <DropdownMenuItem>Support</DropdownMenuItem>
-          <DropdownMenuSeparator />
-           <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="ml-auto flex items-center gap-4">
+        <Badge variant="outline" className="hidden sm:flex items-center gap-2 capitalize">
+            <UserCog className="h-4 w-4" />
+            {user.role}
+        </Badge>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon" className="overflow-hidden rounded-full">
+              <Avatar>
+                <AvatarImage src={user.avatarUrl} alt="User avatar" data-ai-hint="person portrait" />
+                <AvatarFallback>{user.name ? user.name.split(' ').map(n => n[0]).join('') : 'U'}</AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem>Support</DropdownMenuItem>
+            <DropdownMenuSeparator />
+             <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </header>
   )
 }
