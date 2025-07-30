@@ -15,7 +15,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { ArrowUpDown, MoreHorizontal, PlusCircle, Loader2, CalendarIcon } from "lucide-react"
+import { ArrowUpDown, MoreHorizontal, PlusCircle, Loader2, CalendarIcon, Building } from "lucide-react"
 import { format } from "date-fns"
 import Link from "next/link"
 
@@ -37,7 +37,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog"
 import {
@@ -79,6 +78,13 @@ export type Patient = {
   email: string;
   telephone: string;
 };
+
+// New type for the doctor/staff response
+export type ClinicWithPatients = {
+    clinic_id: number;
+    clinic_name: string;
+    patients: Patient[];
+}
 
 // Schema based on `CreatePatient` from API spec.
 const patientSchema = z.object({
@@ -222,7 +228,7 @@ function AddPatientForm({ onFinished }: { onFinished: () => void }) {
             <FormField control={form.control} name="clinic_id" render={({ field }) => (
               <FormItem>
                 <FormLabel>Clinic</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value?.toString()} disabled={isFetchingClinics || clinics.length === 0}>
+                <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={field.value?.toString()} disabled={isFetchingClinics || clinics.length === 0}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder={isFetchingClinics ? "Loading clinics..." : "Select a clinic"} />
@@ -438,6 +444,8 @@ function PatientsPage() {
     const { apiFetch } = useApi();
     const { toast } = useToast();
     const [data, setData] = React.useState<Patient[]>([])
+    const [clinicsWithPatients, setClinicsWithPatients] = React.useState<ClinicWithPatients[]>([]);
+    const [selectedClinicId, setSelectedClinicId] = React.useState<number | null>(null);
     const [isLoading, setIsLoading] = React.useState(true)
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -459,8 +467,22 @@ function PatientsPage() {
              if (!response.ok) {
                 throw new Error("Failed to fetch patients.");
             }
-            const patientsData = await response.json();
-            setData(patientsData);
+            const responseData = await response.json();
+            
+            if (user.role === 'admin') {
+                setData(responseData);
+                setClinicsWithPatients([]);
+            } else {
+                setClinicsWithPatients(responseData);
+                // If there are clinics, select the first one by default
+                if (responseData.length > 0) {
+                    const firstClinicId = responseData[0].clinic_id;
+                    setSelectedClinicId(firstClinicId);
+                    setData(responseData[0].patients);
+                } else {
+                    setData([]);
+                }
+            }
         } catch (error) {
              if (error instanceof Error && error.message === "Unauthorized") return;
              toast({ variant: "destructive", title: "Error", description: "Could not fetch patient data." });
@@ -472,6 +494,14 @@ function PatientsPage() {
     React.useEffect(() => {
         fetchPatients()
     }, [fetchPatients])
+    
+    const handleClinicChange = (clinicIdStr: string) => {
+        const clinicId = parseInt(clinicIdStr, 10);
+        setSelectedClinicId(clinicId);
+        const selectedClinic = clinicsWithPatients.find(c => c.clinic_id === clinicId);
+        setData(selectedClinic ? selectedClinic.patients : []);
+    };
+
 
     const table = useReactTable({
         data,
@@ -501,14 +531,33 @@ function PatientsPage() {
             </CardHeader>
             <CardContent>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
-                    <Input
-                        placeholder="Search by patient name..."
-                        value={(table.getColumn("first_name")?.getFilterValue() as string) ?? ""}
-                        onChange={(event) =>
-                            table.getColumn("first_name")?.setFilterValue(event.target.value)
-                        }
-                        className="w-full sm:max-w-sm"
-                    />
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                        <Input
+                            placeholder="Search by patient name..."
+                            value={(table.getColumn("first_name")?.getFilterValue() as string) ?? ""}
+                            onChange={(event) =>
+                                table.getColumn("first_name")?.setFilterValue(event.target.value)
+                            }
+                            className="w-full sm:max-w-sm"
+                        />
+                        {user?.role !== 'admin' && clinicsWithPatients.length > 0 && (
+                             <Select onValueChange={handleClinicChange} value={selectedClinicId?.toString()}>
+                                <SelectTrigger className="w-full sm:w-[280px]">
+                                    <div className="flex items-center gap-2">
+                                        <Building className="h-4 w-4 text-muted-foreground" />
+                                        <SelectValue placeholder="Select a clinic to view patients" />
+                                    </div>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {clinicsWithPatients.map((clinic) => (
+                                        <SelectItem key={clinic.clinic_id} value={String(clinic.clinic_id)}>
+                                            {clinic.clinic_name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+                    </div>
                     {(user?.role === 'doctor' || user?.role === 'staff') && (
                         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                             <DialogTrigger asChild>
@@ -587,5 +636,3 @@ function PatientsPage() {
 }
 
 export default PatientsPage;
-
-    
