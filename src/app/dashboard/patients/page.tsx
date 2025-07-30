@@ -38,7 +38,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
 } from "@/components/ui/dialog"
 import {
     AlertDialog,
@@ -150,7 +149,7 @@ function AddPatientForm({ onFinished }: { onFinished: () => void }) {
   async function onSubmit(values: z.infer<typeof patientSchema>) {
     setIsLoading(true)
     try {
-      const response = await apiFetch('/api/patients/create', {
+      const response = await apiFetch('/api/patients/create/', {
         method: 'POST',
         body: JSON.stringify(values)
       });
@@ -282,7 +281,7 @@ function CreateMedicalCaseForm({ patient, onFinished }: { patient: Patient, onFi
             };
             delete (payload as any).initial_note;
 
-            const response = await apiFetch('/api/patients/create/medical-cases/', {
+            const response = await apiFetch('/api/patients/create/medical-case/', {
                 method: 'POST',
                 body: JSON.stringify(payload)
             });
@@ -637,3 +636,5 @@ function PatientsPage() {
 }
 
 export default PatientsPage;
+
+    
