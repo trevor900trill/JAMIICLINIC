@@ -13,10 +13,12 @@ import {
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Home, Users, Building, HeartPulse, PanelLeft, Stethoscope, UserCog } from 'lucide-react'
 import React from 'react'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/context/auth-context'
+import { useClinic } from '@/context/clinic-context'
 
 const allNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home, roles: ['admin', 'doctor', 'staff'] },
@@ -30,6 +32,7 @@ export function Header() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuth()
+  const { clinics, selectedClinic, setSelectedClinicId, isLoading } = useClinic()
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
   
   if (!user) return null; // or a loading skeleton
@@ -47,6 +50,11 @@ export function Header() {
     logout()
     router.push('/')
   }
+
+  const handleClinicChange = (clinicIdStr: string) => {
+    const clinicId = parseInt(clinicIdStr, 10);
+    setSelectedClinicId(clinicId);
+  };
 
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
@@ -84,14 +92,32 @@ export function Header() {
       </Sheet>
       
       <h1 className="text-xl font-semibold">{pageTitle}</h1>
-      <Badge variant="outline" className="hidden sm:flex items-center gap-2 capitalize">
+      
+      {user.role !== 'admin' && (
+        <div className="ml-4">
+            <Select onValueChange={handleClinicChange} value={selectedClinic?.clinic_id.toString()} disabled={isLoading || clinics.length === 0}>
+              <SelectTrigger className="w-full sm:w-[280px]">
+                  <div className="flex items-center gap-2">
+                      <Building className="h-4 w-4 text-muted-foreground" />
+                      <SelectValue placeholder={isLoading ? "Loading clinics..." : "Select a clinic"} />
+                  </div>
+              </SelectTrigger>
+              <SelectContent>
+                  {clinics.map((clinic) => (
+                      <SelectItem key={clinic.clinic_id} value={String(clinic.clinic_id)}>
+                          {clinic.clinic_name}
+                      </SelectItem>
+                  ))}
+              </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      <Badge variant="outline" className="hidden sm:flex items-center gap-2 capitalize ml-auto">
           <UserCog className="h-4 w-4" />
           {user.role}
       </Badge>
       
-      <div className="relative ml-auto flex-1 md:grow-0">
-        {/* Future search bar can be placed here */}
-      </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="icon" className="overflow-hidden rounded-full">
@@ -113,5 +139,3 @@ export function Header() {
     </header>
   )
 }
-
-    

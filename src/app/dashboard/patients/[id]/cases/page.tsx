@@ -4,7 +4,7 @@
 import React from "react";
 import { useApi } from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, FileText, Calendar, PlusCircle, ArrowLeft, Eye } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
@@ -32,6 +32,7 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useClinic } from "@/context/clinic-context";
 
 type MedicalCase = {
     id: number;
@@ -47,10 +48,11 @@ const medicalCaseSchema = z.object({
     case_date: z.date({ required_error: "A case date is required."}),
 });
 
-function CreateCaseForm({ onFinished, patientId, clinicId }: { onFinished: () => void, patientId: string, clinicId: number | null }) {
+function CreateCaseForm({ onFinished, patientId }: { onFinished: () => void, patientId: string }) {
     const { toast } = useToast()
     const { apiFetch } = useApi()
     const { user } = useAuth()
+    const { selectedClinic } = useClinic();
     const [isLoading, setIsLoading] = React.useState(false)
 
     const form = useForm<z.infer<typeof medicalCaseSchema>>({
@@ -73,12 +75,12 @@ function CreateCaseForm({ onFinished, patientId, clinicId }: { onFinished: () =>
             };
 
             if (user?.role === 'doctor') {
-                if (!clinicId) {
+                 if (!selectedClinic) {
                     toast({ variant: "destructive", title: "Error", description: "Clinic ID is missing. Cannot create case." });
                     setIsLoading(false);
                     return;
                 }
-                payload.clinic_id = clinicId;
+                payload.clinic_id = selectedClinic.clinic_id;
             }
 
             const response = await apiFetch('/api/patients/create/medical-case/', {
@@ -145,9 +147,7 @@ function PatientCasesPage() {
     const { user } = useAuth();
     const { apiFetch } = useApi();
     const { toast } = useToast();
-    const searchParams = useSearchParams();
-    const clinicId = searchParams.get('clinicId');
-
+    
     const [cases, setCases] = React.useState<MedicalCase[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [isFormOpen, setIsFormOpen] = React.useState(false);
@@ -219,7 +219,6 @@ function PatientCasesPage() {
                              <DialogContent>
                                 <CreateCaseForm 
                                     patientId={patientId} 
-                                    clinicId={clinicId ? parseInt(clinicId) : null}
                                     onFinished={onFormFinished} 
                                 />
                              </DialogContent>

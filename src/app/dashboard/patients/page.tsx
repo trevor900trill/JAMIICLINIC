@@ -1,3 +1,4 @@
+
 "use client"
 import React from "react"
 import {
@@ -14,7 +15,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { ArrowUpDown, MoreHorizontal, PlusCircle, Loader2, Building } from "lucide-react"
+import { ArrowUpDown, MoreHorizontal, PlusCircle, Loader2 } from "lucide-react"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
@@ -31,11 +32,11 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogTrigger,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog"
 import {
     AlertDialog,
@@ -62,28 +63,19 @@ import { useToast } from "@/hooks/use-toast"
 import { DataTablePagination } from "@/components/ui/data-table-pagination"
 import { useAuth } from "@/context/auth-context"
 import { useApi } from "@/hooks/use-api"
+import { useClinic } from "@/context/clinic-context"
 
-// Based on API Spec. A patient record in a clinic context.
-// This now accommodates both admin and doctor/staff responses.
 export type Patient = {
   id: number;
-  clinic_id?: number; // Optional for admin response
-  clinic_name?: string; // Optional for admin response
-  first_name?: string; // Optional for doctor/staff response
-  last_name?: string; // Optional for doctor/staff response
-  full_name?: string; // Optional for admin response
+  clinic_id?: number;
+  clinic_name?: string;
+  first_name?: string;
+  last_name?: string;
+  full_name?: string;
   email: string;
   telephone: string;
 };
 
-// New type for the doctor/staff response
-export type ClinicWithPatients = {
-    clinic_id: number;
-    clinic_name: string;
-    patients: Patient[];
-}
-
-// Schema based on `CreatePatient` from API spec.
 const patientSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
   first_name: z.string().min(1, "First name is required"),
@@ -93,38 +85,11 @@ const patientSchema = z.object({
   clinic_id: z.coerce.number({invalid_type_error: "Please select a clinic"}).int().positive("Please select a clinic"),
 })
 
-type Clinic = {
-  id: number;
-  name: string;
-}
-
 function AddPatientForm({ onFinished }: { onFinished: () => void }) {
   const { toast } = useToast()
   const { apiFetch } = useApi()
+  const { clinics, selectedClinic, isLoading: isClinicLoading } = useClinic();
   const [isLoading, setIsLoading] = React.useState(false)
-  const [clinics, setClinics] = React.useState<Clinic[]>([])
-  const [isFetchingClinics, setIsFetchingClinics] = React.useState(true)
-
-  React.useEffect(() => {
-    async function fetchClinics() {
-        setIsFetchingClinics(true);
-        try {
-            const response = await apiFetch('/api/clinics/');
-            if (!response.ok) {
-                throw new Error("Could not fetch clinics.");
-            }
-            const clinicData = await response.json();
-            setClinics(clinicData);
-        } catch (error) {
-            if (error instanceof Error && error.message === "Unauthorized") return;
-            toast({ variant: "destructive", title: "Error", description: "Could not load your clinics." });
-        } finally {
-            setIsFetchingClinics(false);
-        }
-    }
-    fetchClinics();
-  }, [apiFetch, toast]);
-
 
   const form = useForm<z.infer<typeof patientSchema>>({
     resolver: zodResolver(patientSchema),
@@ -132,9 +97,17 @@ function AddPatientForm({ onFinished }: { onFinished: () => void }) {
       email: "",
       first_name: "",
       last_name: "",
-      telephone: ""
+      telephone: "",
+      clinic_id: selectedClinic?.clinic_id
     }
   })
+
+  React.useEffect(() => {
+    if (selectedClinic) {
+        form.setValue('clinic_id', selectedClinic.clinic_id);
+    }
+  }, [selectedClinic, form]);
+
 
   async function onSubmit(values: z.infer<typeof patientSchema>) {
     setIsLoading(true)
@@ -218,15 +191,15 @@ function AddPatientForm({ onFinished }: { onFinished: () => void }) {
             <FormField control={form.control} name="clinic_id" render={({ field }) => (
               <FormItem>
                 <FormLabel>Clinic</FormLabel>
-                <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={field.value?.toString()} disabled={isFetchingClinics || clinics.length === 0}>
+                <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()} disabled={isClinicLoading || clinics.length === 0}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder={isFetchingClinics ? "Loading clinics..." : "Select a clinic"} />
+                      <SelectValue placeholder={isClinicLoading ? "Loading clinics..." : "Select a clinic"} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {!isFetchingClinics && clinics.map((clinic) => (
-                      <SelectItem key={clinic.id} value={String(clinic.id)}>{clinic.name}</SelectItem>
+                    {!isClinicLoading && clinics.map((clinic) => (
+                      <SelectItem key={clinic.clinic_id} value={String(clinic.clinic_id)}>{clinic.clinic_name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -235,7 +208,7 @@ function AddPatientForm({ onFinished }: { onFinished: () => void }) {
             )} />
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={isLoading || isFetchingClinics}>
+            <Button type="submit" disabled={isLoading || isClinicLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLoading ? "Saving..." : "Save Patient"}
             </Button>
@@ -307,23 +280,25 @@ export const columns: ColumnDef<Patient>[] = [
       const patient = row.original;
       
       return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-            </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem asChild>
-                <Link href={`/dashboard/patients/${patient.id}/cases?clinicId=${patient.clinic_id}`}>View Cases</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem>Edit Details</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DeletePatientDialog />
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex justify-start">
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">Open menu</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem asChild>
+                    <Link href={`/dashboard/patients/${patient.id}/cases`}>View Cases</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem>Edit Details</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DeletePatientDialog />
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
       )
     },
   },
@@ -333,9 +308,8 @@ function PatientsPage() {
     const { user } = useAuth();
     const { apiFetch } = useApi();
     const { toast } = useToast();
+    const { selectedClinic } = useClinic();
     const [data, setData] = React.useState<Patient[]>([])
-    const [clinicsWithPatients, setClinicsWithPatients] = React.useState<ClinicWithPatients[]>([]);
-    const [selectedClinicId, setSelectedClinicId] = React.useState<number | null>(null);
     const [isLoading, setIsLoading] = React.useState(true)
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -343,9 +317,17 @@ function PatientsPage() {
 
     const fetchPatients = React.useCallback(async () => {
         if (!user) return;
+        
+        // For doctors/staff, if no clinic is selected, don't fetch.
+        if (user.role !== 'admin' && !selectedClinic) {
+            setData([]);
+            setIsLoading(false);
+            return;
+        }
+
         setIsLoading(true);
 
-        let endpoint = '/api/management/patients/'; // Default for admin
+        let endpoint = '/api/management/patients/'; 
         if (user.role === 'doctor') {
             endpoint = '/api/clinics/doctor/patients/';
         } else if (user.role === 'staff') {
@@ -361,22 +343,18 @@ function PatientsPage() {
             
             if (user.role === 'admin') {
                 setData(responseData.results);
-                setClinicsWithPatients([]);
             } else {
-                setClinicsWithPatients(responseData);
-                // If there are clinics, select the first one by default
-                if (responseData.length > 0) {
-                    const firstClinic = responseData[0];
-                    const firstClinicId = firstClinic.clinic_id;
-                    setSelectedClinicId(firstClinicId);
-                    const patientsWithClinic = firstClinic.patients.map(p => ({ 
-                        ...p, 
-                        clinic_id: firstClinic.clinic_id,
-                        clinic_name: firstClinic.clinic_name 
+                // Find the data for the selected clinic
+                const clinicData = responseData.find((c: any) => c.clinic_id === selectedClinic!.clinic_id);
+                if (clinicData) {
+                    const patientsWithClinicInfo = clinicData.patients.map((p: Patient) => ({
+                        ...p,
+                        clinic_id: clinicData.clinic_id,
+                        clinic_name: clinicData.clinic_name,
                     }));
-                    setData(patientsWithClinic);
+                    setData(patientsWithClinicInfo);
                 } else {
-                    setData([]);
+                    setData([]); // No data for this clinic
                 }
             }
         } catch (error) {
@@ -385,29 +363,12 @@ function PatientsPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [toast, apiFetch, user]);
+    }, [toast, apiFetch, user, selectedClinic]);
 
     React.useEffect(() => {
         fetchPatients()
     }, [fetchPatients])
     
-    const handleClinicChange = (clinicIdStr: string) => {
-        const clinicId = parseInt(clinicIdStr, 10);
-        setSelectedClinicId(clinicId);
-        const selectedClinic = clinicsWithPatients.find(c => c.clinic_id === clinicId);
-        if (selectedClinic) {
-            const patientsWithClinic = selectedClinic.patients.map(p => ({ 
-                ...p, 
-                clinic_id: selectedClinic.clinic_id,
-                clinic_name: selectedClinic.clinic_name
-            }));
-            setData(patientsWithClinic);
-        } else {
-            setData([]);
-        }
-    };
-
-
     const table = useReactTable({
         data,
         columns,
@@ -427,6 +388,8 @@ function PatientsPage() {
         setIsFormOpen(false);
         fetchPatients();
     }
+    
+    const canAddPatient = user?.role === 'doctor' || user?.role === 'staff';
 
     return (
         <Card>
@@ -436,37 +399,18 @@ function PatientsPage() {
             </CardHeader>
             <CardContent>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                        <Input
-                            placeholder="Search by patient name..."
-                            value={(table.getColumn("full_name")?.getFilterValue() as string) ?? ""}
-                            onChange={(event) =>
-                                table.getColumn("full_name")?.setFilterValue(event.target.value)
-                            }
-                            className="w-full sm:max-w-sm"
-                        />
-                        {user?.role !== 'admin' && clinicsWithPatients.length > 0 && (
-                             <Select onValueChange={handleClinicChange} value={selectedClinicId?.toString()}>
-                                <SelectTrigger className="w-full sm:w-[280px]">
-                                    <div className="flex items-center gap-2">
-                                        <Building className="h-4 w-4 text-muted-foreground" />
-                                        <SelectValue placeholder="Select a clinic to view patients" />
-                                    </div>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {clinicsWithPatients.map((clinic) => (
-                                        <SelectItem key={clinic.clinic_id} value={String(clinic.clinic_id)}>
-                                            {clinic.clinic_name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        )}
-                    </div>
-                    {(user?.role === 'doctor' || user?.role === 'staff') && (
+                    <Input
+                        placeholder="Search by patient name..."
+                        value={(table.getColumn("full_name")?.getFilterValue() as string) ?? ""}
+                        onChange={(event) =>
+                            table.getColumn("full_name")?.setFilterValue(event.target.value)
+                        }
+                        className="w-full sm:max-w-sm"
+                    />
+                    {canAddPatient && (
                         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                             <DialogTrigger asChild>
-                               <Button className="w-full sm:w-auto">
+                               <Button className="w-full sm:w-auto" disabled={!selectedClinic}>
                                     <PlusCircle className="mr-2 h-4 w-4" /> Add Patient
                                 </Button>
                             </DialogTrigger>
@@ -526,7 +470,7 @@ function PatientsPage() {
                                 ) : (
                                     <TableRow key="no-results">
                                         <TableCell colSpan={columns.length} className="h-24 text-center">
-                                            No patient data available.
+                                            {user?.role !== 'admin' && !selectedClinic ? "Please select a clinic to view patients." : "No patient data available."}
                                         </TableCell>
                                     </TableRow>
                                 )}
