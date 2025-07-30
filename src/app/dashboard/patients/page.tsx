@@ -70,12 +70,14 @@ import { useApi } from "@/hooks/use-api"
 import { cn } from "@/lib/utils"
 
 // Based on API Spec. A patient record in a clinic context.
+// This now accommodates both admin and doctor/staff responses.
 export type Patient = {
   id: number;
-  clinic_id: number;
-  clinic_name: string;
-  first_name: string;
-  last_name: string;
+  clinic_id?: number; // Optional for admin response
+  clinic_name?: string; // Optional for admin response
+  first_name?: string; // Optional for doctor/staff response
+  last_name?: string; // Optional for doctor/staff response
+  full_name?: string; // Optional for admin response
   email: string;
   telephone: string;
 };
@@ -311,7 +313,7 @@ function CreateMedicalCaseForm({ patient, onFinished }: { patient: Patient, onFi
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
                 <DialogHeader>
-                    <DialogTitle>New Medical Case for {patient.first_name} {patient.last_name}</DialogTitle>
+                    <DialogTitle>New Medical Case for {patient.full_name || `${patient.first_name} ${patient.last_name}`}</DialogTitle>
                     <DialogDescription>Fill in the details for the new medical case.</DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
@@ -383,7 +385,7 @@ export const columns: ColumnDef<Patient>[] = [
         </Button>
       )
     },
-    cell: ({ row }) => <div>{`${row.original.first_name} ${row.original.last_name}`}</div>,
+    cell: ({ row }) => <div>{row.original.full_name || `${row.original.first_name} ${row.original.last_name}`}</div>,
   },
   {
     accessorKey: "email",
@@ -409,7 +411,7 @@ export const columns: ColumnDef<Patient>[] = [
       const { user } = useAuth();
 
       return (
-        <>
+        <div className="flex justify-start">
             <Dialog open={isCaseFormOpen} onOpenChange={setIsCaseFormOpen}>
                 <DialogContent>
                     <CreateMedicalCaseForm patient={patient} onFinished={() => setIsCaseFormOpen(false)} />
@@ -437,7 +439,7 @@ export const columns: ColumnDef<Patient>[] = [
                 <DeletePatientDialog />
               </DropdownMenuContent>
             </DropdownMenu>
-        </>
+        </div>
       )
     },
   },
@@ -640,3 +642,5 @@ function PatientsPage() {
 }
 
 export default PatientsPage;
+
+    
