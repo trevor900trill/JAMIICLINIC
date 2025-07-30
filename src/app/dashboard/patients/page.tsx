@@ -14,14 +14,12 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { ArrowUpDown, MoreHorizontal, PlusCircle, Loader2, CalendarIcon, Building } from "lucide-react"
-import { format } from "date-fns"
+import { ArrowUpDown, MoreHorizontal, PlusCircle, Loader2, Building } from "lucide-react"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import {
     Table,
     TableBody,
@@ -34,10 +32,10 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogTrigger,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
     AlertDialog,
@@ -60,13 +58,10 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
 import { useToast } from "@/hooks/use-toast"
 import { DataTablePagination } from "@/components/ui/data-table-pagination"
 import { useAuth } from "@/context/auth-context"
 import { useApi } from "@/hooks/use-api"
-import { cn } from "@/lib/utils"
 
 // Based on API Spec. A patient record in a clinic context.
 // This now accommodates both admin and doctor/staff responses.
@@ -96,13 +91,6 @@ const patientSchema = z.object({
   gender: z.enum(["male", "female"], { required_error: "Please select a gender." }),
   telephone: z.string().min(10, "Please enter a valid phone number."),
   clinic_id: z.coerce.number({invalid_type_error: "Please select a clinic"}).int().positive("Please select a clinic"),
-})
-
-const medicalCaseSchema = z.object({
-    title: z.string().min(1, "Case title is required."),
-    description: z.string().min(1, "Description is required."),
-    case_date: z.date({ required_error: "A case date is required."}),
-    initial_note: z.string().optional(),
 })
 
 type Clinic = {
@@ -257,95 +245,6 @@ function AddPatientForm({ onFinished }: { onFinished: () => void }) {
   )
 }
 
-function CreateMedicalCaseForm({ patient, onFinished }: { patient: Patient, onFinished: () => void }) {
-    const { toast } = useToast()
-    const { apiFetch } = useApi()
-    const [isLoading, setIsLoading] = React.useState(false)
-
-    const form = useForm<z.infer<typeof medicalCaseSchema>>({
-        resolver: zodResolver(medicalCaseSchema),
-        defaultValues: {
-            title: "",
-            description: "",
-            case_date: new Date(),
-            initial_note: "",
-        }
-    })
-
-    async function onSubmit(values: z.infer<typeof medicalCaseSchema>) {
-        setIsLoading(true)
-        try {
-            const records = values.initial_note ? [{ record_type: "general", note: values.initial_note }] : [];
-            const payload = {
-                ...values,
-                patient: patient.id,
-                clinic_id: patient.clinic_id,
-                case_date: format(values.case_date, "yyyy-MM-dd"),
-                is_active: true,
-                records: records,
-            };
-            delete (payload as any).initial_note;
-
-            const response = await apiFetch('/api/patients/create/medical-case/', {
-                method: 'POST',
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || "Failed to create medical case.");
-            }
-
-            toast({ title: "Success", description: "New medical case has been created." })
-            form.reset()
-            onFinished()
-        } catch (error) {
-            if (error instanceof Error && error.message === "Unauthorized") return;
-            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-            toast({ variant: "destructive", title: "Error", description: errorMessage });
-        } finally {
-            setIsLoading(false)
-        }
-    }
-
-    return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-                <DialogHeader>
-                    <DialogTitle>New Medical Case for {patient.full_name || `${patient.first_name} ${patient.last_name}`}</DialogTitle>
-                    <DialogDescription>Fill in the details for the new medical case.</DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <FormField control={form.control} name="title" render={({ field }) => (
-                        <FormItem><FormLabel>Case Title</FormLabel><FormControl><Input placeholder="e.g., Annual Checkup" {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                    <FormField control={form.control} name="description" render={({ field }) => (
-                        <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Describe the reason for the visit or the main complaint." {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                    <FormField control={form.control} name="case_date" render={({ field }) => (
-                        <FormItem className="flex flex-col"><FormLabel>Case Date</FormLabel><Popover><PopoverTrigger asChild>
-                            <FormControl>
-                                <Button variant={"outline"} className={cn("w-[240px] pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                            </FormControl>
-                        </PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
-                    )} />
-                    <FormField control={form.control} name="initial_note" render={({ field }) => (
-                        <FormItem><FormLabel>Initial Note (Optional)</FormLabel><FormControl><Textarea placeholder="Add an initial observation or note for this case." {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                </div>
-                <DialogFooter>
-                    <Button type="submit" disabled={isLoading}>
-                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Create Case
-                    </Button>
-                </DialogFooter>
-            </form>
-        </Form>
-    )
-}
-
 function DeletePatientDialog() {
     return (
         <AlertDialog>
@@ -372,7 +271,7 @@ function DeletePatientDialog() {
 
 export const columns: ColumnDef<Patient>[] = [
   {
-    accessorKey: "first_name",
+    accessorKey: "full_name",
     header: ({ column }) => {
       return (
         <Button
@@ -406,39 +305,25 @@ export const columns: ColumnDef<Patient>[] = [
     enableHiding: false,
     cell: ({ row }) => {
       const patient = row.original;
-      const [isCaseFormOpen, setIsCaseFormOpen] = React.useState(false);
-      const { user } = useAuth();
-
+      
       return (
-        <>
-            <Dialog open={isCaseFormOpen} onOpenChange={setIsCaseFormOpen}>
-                <DialogContent>
-                    <CreateMedicalCaseForm patient={patient} onFinished={() => setIsCaseFormOpen(false)} />
-                </DialogContent>
-            </Dialog>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                  <span className="sr-only">Open menu</span>
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem asChild>
-                    <Link href={`/dashboard/patients/${patient.id}/cases`}>View Cases</Link>
-                </DropdownMenuItem>
-                {(user?.role === 'doctor' || user?.role === 'staff') && (
-                  <DropdownMenuItem onSelect={() => setIsCaseFormOpen(true)}>
-                      Create Case
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem>Edit Details</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DeletePatientDialog />
-              </DropdownMenuContent>
-            </DropdownMenu>
-        </>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+            </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem asChild>
+                <Link href={`/dashboard/patients/${patient.id}/cases?clinicId=${patient.clinic_id}`}>View Cases</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem>Edit Details</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DeletePatientDialog />
+            </DropdownMenuContent>
+        </DropdownMenu>
       )
     },
   },
@@ -481,9 +366,15 @@ function PatientsPage() {
                 setClinicsWithPatients(responseData);
                 // If there are clinics, select the first one by default
                 if (responseData.length > 0) {
-                    const firstClinicId = responseData[0].clinic_id;
+                    const firstClinic = responseData[0];
+                    const firstClinicId = firstClinic.clinic_id;
                     setSelectedClinicId(firstClinicId);
-                    setData(responseData[0].patients);
+                    const patientsWithClinic = firstClinic.patients.map(p => ({ 
+                        ...p, 
+                        clinic_id: firstClinic.clinic_id,
+                        clinic_name: firstClinic.clinic_name 
+                    }));
+                    setData(patientsWithClinic);
                 } else {
                     setData([]);
                 }
@@ -504,7 +395,16 @@ function PatientsPage() {
         const clinicId = parseInt(clinicIdStr, 10);
         setSelectedClinicId(clinicId);
         const selectedClinic = clinicsWithPatients.find(c => c.clinic_id === clinicId);
-        setData(selectedClinic ? selectedClinic.patients : []);
+        if (selectedClinic) {
+            const patientsWithClinic = selectedClinic.patients.map(p => ({ 
+                ...p, 
+                clinic_id: selectedClinic.clinic_id,
+                clinic_name: selectedClinic.clinic_name
+            }));
+            setData(patientsWithClinic);
+        } else {
+            setData([]);
+        }
     };
 
 
@@ -539,9 +439,9 @@ function PatientsPage() {
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                         <Input
                             placeholder="Search by patient name..."
-                            value={(table.getColumn("first_name")?.getFilterValue() as string) ?? ""}
+                            value={(table.getColumn("full_name")?.getFilterValue() as string) ?? ""}
                             onChange={(event) =>
-                                table.getColumn("first_name")?.setFilterValue(event.target.value)
+                                table.getColumn("full_name")?.setFilterValue(event.target.value)
                             }
                             className="w-full sm:max-w-sm"
                         />
