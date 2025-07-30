@@ -1,4 +1,3 @@
-
 "use client"
 import React from "react"
 import {
@@ -411,7 +410,7 @@ export const columns: ColumnDef<Patient>[] = [
       const { user } = useAuth();
 
       return (
-        <div className="flex justify-start">
+        <>
             <Dialog open={isCaseFormOpen} onOpenChange={setIsCaseFormOpen}>
                 <DialogContent>
                     <CreateMedicalCaseForm patient={patient} onFinished={() => setIsCaseFormOpen(false)} />
@@ -424,10 +423,10 @@ export const columns: ColumnDef<Patient>[] = [
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent>
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem asChild>
-                    <Link href={`/dashboard/patients/${patient.id}`}>View Record</Link>
+                    <Link href={`/dashboard/patients/${patient.id}/cases`}>View Cases</Link>
                 </DropdownMenuItem>
                 {(user?.role === 'doctor' || user?.role === 'staff') && (
                   <DropdownMenuItem onSelect={() => setIsCaseFormOpen(true)}>
@@ -439,7 +438,7 @@ export const columns: ColumnDef<Patient>[] = [
                 <DeletePatientDialog />
               </DropdownMenuContent>
             </DropdownMenu>
-        </div>
+        </>
       )
     },
   },
@@ -461,7 +460,7 @@ function PatientsPage() {
         if (!user) return;
         setIsLoading(true);
 
-        let endpoint = '/api/management/patients'; // Default for admin
+        let endpoint = '/api/management/patients/'; // Default for admin
         if (user.role === 'doctor') {
             endpoint = '/api/clinics/doctor/patients/';
         } else if (user.role === 'staff') {
@@ -476,7 +475,7 @@ function PatientsPage() {
             const responseData = await response.json();
             
             if (user.role === 'admin') {
-                setData(responseData);
+                setData(responseData.results);
                 setClinicsWithPatients([]);
             } else {
                 setClinicsWithPatients(responseData);
@@ -583,16 +582,18 @@ function PatientsPage() {
                             <TableHeader>
                                 {table.getHeaderGroups().map((headerGroup) => (
                                     <TableRow key={headerGroup.id}>
-                                        {headerGroup.headers.map((header) => (
-                                            <TableHead key={header.id}>
-                                                {header.isPlaceholder
-                                                    ? null
-                                                    : flexRender(
-                                                        header.column.columnDef.header,
-                                                        header.getContext()
-                                                    )}
-                                            </TableHead>
-                                        ))}
+                                        {headerGroup.headers.map((header) => {
+                                            return (
+                                                <TableHead key={header.id} className={header.id === 'actions' ? 'text-left' : ''}>
+                                                    {header.isPlaceholder
+                                                        ? null
+                                                        : flexRender(
+                                                            header.column.columnDef.header,
+                                                            header.getContext()
+                                                        )}
+                                                </TableHead>
+                                            )
+                                        })}
                                     </TableRow>
                                 ))}
                             </TableHeader>
@@ -642,5 +643,3 @@ function PatientsPage() {
 }
 
 export default PatientsPage;
-
-    
