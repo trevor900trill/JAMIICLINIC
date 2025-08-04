@@ -6,7 +6,7 @@ import { useApi } from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, FileText, Calendar, PlusCircle, ArrowLeft, Eye } from "lucide-react";
+import { Loader2, FileText, Calendar, PlusCircle, ArrowLeft, Eye, MoreHorizontal } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
@@ -33,6 +33,27 @@ import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useClinic } from "@/context/clinic-context";
+import {
+    ColumnDef,
+    flexRender,
+    getCoreRowModel,
+    useReactTable,
+} from "@tanstack/react-table"
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 type MedicalCase = {
     id: number;
@@ -140,6 +161,60 @@ function CreateCaseForm({ onFinished, patientId }: { onFinished: () => void, pat
     )
 }
 
+const columns: ColumnDef<MedicalCase>[] = [
+    {
+        accessorKey: "title",
+        header: "Title",
+        cell: ({ row }) => <div className="font-medium">{row.getValue("title")}</div>,
+    },
+    {
+        accessorKey: "description",
+        header: "Description",
+        cell: ({ row }) => <div className="text-muted-foreground">{row.getValue("description")}</div>,
+    },
+    {
+        accessorKey: "case_date",
+        header: "Date",
+        cell: ({ row }) => <div>{new Date(row.getValue("case_date")).toLocaleDateString()}</div>,
+    },
+    {
+        accessorKey: "is_active",
+        header: "Status",
+        cell: ({ row }) => (
+            <Badge variant={row.getValue("is_active") ? "default" : "secondary"}>
+                {row.getValue("is_active") ? "Active" : "Closed"}
+            </Badge>
+        ),
+    },
+    {
+        id: "actions",
+        enableHiding: false,
+        cell: ({ row }) => {
+            const caseItem = row.original;
+            const params = useParams();
+            return (
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                        <span className="sr-only">Open menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem asChild>
+                            <Link href={`/dashboard/patients/${params.id}/cases/${caseItem.id}`}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                            </Link>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            );
+        },
+    },
+];
+
 
 function PatientCasesPage() {
     const { id } = useParams();
@@ -181,13 +256,19 @@ function PatientCasesPage() {
     React.useEffect(() => {
         fetchCases();
     }, [fetchCases]);
+
+    const table = useReactTable({
+        data: cases,
+        columns,
+        getCoreRowModel: getCoreRowModel(),
+    });
     
     const onFormFinished = () => {
         setIsFormOpen(false);
         fetchCases();
     }
 
-    if (isLoading) {
+    if (isLoading && cases.length === 0) {
         return (
             <div className="flex h-full items-center justify-center">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -227,45 +308,58 @@ function PatientCasesPage() {
                  </div>
             </CardHeader>
             <CardContent>
-                {cases.length > 0 ? (
-                    <div className="space-y-4">
-                        {cases.map(c => (
-                            <div key={c.id} className="border p-4 rounded-lg">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <h3 className="font-semibold text-lg">{c.title}</h3>
-                                        <p className="text-sm text-muted-foreground">{c.description}</p>
-                                    </div>
-                                    <Badge variant={c.is_active ? "default" : "secondary"}>
-                                        {c.is_active ? "Active" : "Closed"}
-                                    </Badge>
-                                </div>
-                                <Separator className="my-3"/>
-                                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                                     <div className="flex items-center gap-2">
-                                        <Calendar className="h-4 w-4" />
-                                        <span>{new Date(c.case_date).toLocaleDateString()}</span>
-                                     </div>
-                                     <Button asChild variant="outline" size="sm">
-                                        <Link href={`/dashboard/patients/${id}/cases/${c.id}`}>
-                                            <Eye className="mr-2 h-4 w-4" />
-                                            View Details
-                                        </Link>
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-center py-10 border-2 border-dashed rounded-lg">
-                        <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-                        <h3 className="mt-2 text-sm font-semibold">No Medical Cases</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">This patient does not have any recorded medical cases yet.</p>
-                    </div>
-                )}
+                <div className="rounded-md border">
+                    <Table>
+                        <TableHeader>
+                            {table.getHeaderGroups().map((headerGroup) => (
+                                <TableRow key={headerGroup.id}>
+                                    {headerGroup.headers.map((header) => (
+                                        <TableHead key={header.id}>
+                                            {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                                        </TableHead>
+                                    ))}
+                                </TableRow>
+                            ))}
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                                        <div className="flex justify-center items-center">
+                                            <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
+                                            <span>Loading cases...</span>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ) : table.getRowModel().rows?.length ? (
+                                table.getRowModel().rows.map((row) => (
+                                    <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                                        {row.getVisibleCells().map((cell) => (
+                                            <TableCell key={cell.id}>
+                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                                        <div className="flex flex-col items-center justify-center gap-2">
+                                            <FileText className="h-12 w-12 text-muted-foreground" />
+                                            <h3 className="mt-2 text-sm font-semibold">No Medical Cases</h3>
+                                            <p className="mt-1 text-sm text-muted-foreground">This patient does not have any recorded medical cases yet.</p>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
             </CardContent>
         </Card>
     );
 }
 
 export default PatientCasesPage;
+
+    
