@@ -386,37 +386,35 @@ function MedicalCasesPage() {
     return (
         <Card>
             <CardHeader>
-                <div className="flex justify-between items-start">
-                    <div>
-                        <CardTitle>Medical Cases</CardTitle>
-                        <CardDescription>View and manage all medical cases across your clinics.</CardDescription>
+                <CardTitle>Medical Cases</CardTitle>
+                <CardDescription>View and manage all medical cases across your clinics.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
+                    <div className="flex gap-2">
+                        <Input
+                            placeholder="Filter by patient name..."
+                            value={(table.getColumn("patient_name")?.getFilterValue() as string) ?? ""}
+                            onChange={(event) =>
+                                table.getColumn("patient_name")?.setFilterValue(event.target.value)
+                            }
+                            className="w-full sm:max-w-sm"
+                        />
+                        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                            <DialogTrigger asChild>
+                                <Button className="w-full sm:w-auto" disabled={!patientId}>
+                                    <PlusCircle className="mr-2 h-4 w-4" /> New Medical Case
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-2xl">
+                                <CreateCaseForm patientId={patientId} clinicId={clinicId} onFinished={onFormFinished} />
+                            </DialogContent>
+                        </Dialog>
                     </div>
                      <Button variant="outline" onClick={() => router.push('/dashboard/patients')}>
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Patients
                     </Button>
-                </div>
-            </CardHeader>
-            <CardContent>
-                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
-                     <Input
-                        placeholder="Filter by patient name..."
-                        value={(table.getColumn("patient_name")?.getFilterValue() as string) ?? ""}
-                        onChange={(event) =>
-                            table.getColumn("patient_name")?.setFilterValue(event.target.value)
-                        }
-                        className="w-full sm:max-w-sm"
-                    />
-                    <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                        <DialogTrigger asChild>
-                            <Button className="w-full sm:w-auto" disabled={!patientId}>
-                                <PlusCircle className="mr-2 h-4 w-4" /> New Medical Case
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-2xl">
-                             <CreateCaseForm patientId={patientId} clinicId={clinicId} onFinished={onFormFinished} />
-                        </DialogContent>
-                    </Dialog>
                 </div>
                 <div className="rounded-md border">
                     <Table>
@@ -470,3 +468,5 @@ function MedicalCasesPage() {
 }
 
 export default MedicalCasesPage;
+
+    
