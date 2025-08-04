@@ -303,7 +303,7 @@ function MedicalCasesPage() {
     const [filteredCases, setFilteredCases] = React.useState<MedicalCase[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [sorting, setSorting] = React.useState<SortingState>([]);
-    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
     const [isFormOpen, setIsFormOpen] = React.useState(false);
     
     const patientNameFilter = searchParams.get("patientName");
@@ -390,8 +390,12 @@ function MedicalCasesPage() {
                 <CardDescription>View and manage all medical cases across your clinics.</CardDescription>
             </CardHeader>
             <CardContent>
-                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
-                    <div className="flex gap-2">
+                 <div className="space-y-4">
+                    <Button variant="link" onClick={() => router.push('/dashboard/patients')} className="p-0 h-auto text-primary">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Back to Patients
+                    </Button>
+                    <div className="flex items-center justify-between gap-4">
                         <Input
                             placeholder="Filter by patient name..."
                             value={(table.getColumn("patient_name")?.getFilterValue() as string) ?? ""}
@@ -411,12 +415,8 @@ function MedicalCasesPage() {
                             </DialogContent>
                         </Dialog>
                     </div>
-                     <Button variant="outline" onClick={() => router.push('/dashboard/patients')}>
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Patients
-                    </Button>
                 </div>
-                <div className="rounded-md border">
+                <div className="rounded-md border mt-4">
                     <Table>
                         <TableHeader>
                             {table.getHeaderGroups().map((headerGroup) => (
@@ -468,5 +468,3 @@ function MedicalCasesPage() {
 }
 
 export default MedicalCasesPage;
-
-    
