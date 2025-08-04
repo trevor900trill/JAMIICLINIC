@@ -1,3 +1,4 @@
+
 "use client"
 
 import Link from 'next/link'
@@ -14,7 +15,8 @@ import {
   Building,
   HeartPulse,
   Settings,
-  Stethoscope
+  Stethoscope,
+  FileText
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/auth-context'
@@ -25,6 +27,7 @@ const allNavItems = [
   { href: '/dashboard/staff', label: 'Staff', icon: Users, roles: ['admin', 'doctor'] },
   { href: '/dashboard/clinics', label: 'Clinics', icon: Building, roles: ['admin', 'doctor'] },
   { href: '/dashboard/patients', label: 'Patients', icon: HeartPulse, roles: ['admin', 'doctor', 'staff'] },
+  { href: '/dashboard/medical-cases', label: 'Medical Cases', icon: FileText, roles: ['admin', 'doctor', 'staff'] },
 ]
 
 export function SidebarNav() {
@@ -53,7 +56,8 @@ export function SidebarNav() {
                   href={item.href}
                   className={cn(
                     'flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8',
-                    pathname === item.href && 'bg-accent text-accent-foreground'
+                    pathname.startsWith(item.href) && item.href !== '/dashboard' && 'bg-accent text-accent-foreground',
+                    pathname === item.href && item.href === '/dashboard' && 'bg-accent text-accent-foreground'
                   )}
                 >
                   <item.icon className="h-5 w-5" />

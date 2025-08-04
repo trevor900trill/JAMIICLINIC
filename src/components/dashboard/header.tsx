@@ -1,3 +1,4 @@
+
 "use client"
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -13,7 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Home, Users, Building, HeartPulse, PanelLeft, Stethoscope, UserCog } from 'lucide-react'
+import { Home, Users, Building, HeartPulse, PanelLeft, Stethoscope, UserCog, FileText } from 'lucide-react'
 import React from 'react'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/context/auth-context'
@@ -25,6 +26,7 @@ const allNavItems = [
   { href: '/dashboard/staff', label: 'Staff', icon: Users, roles: ['admin', 'doctor'] },
   { href: '/dashboard/clinics', label: 'Clinics', icon: Building, roles: ['admin', 'doctor'] },
   { href: '/dashboard/patients',label: 'Patients', icon: HeartPulse, roles: ['admin', 'doctor', 'staff'] },
+  { href: '/dashboard/medical-cases', label: 'Medical Cases', icon: FileText, roles: ['admin', 'doctor', 'staff'] },
 ]
 
 export function Header() {
