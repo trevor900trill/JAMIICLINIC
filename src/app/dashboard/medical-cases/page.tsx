@@ -17,9 +17,13 @@ import {
     getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table";
-import { MoreHorizontal, Eye, ShieldAlert, Trash2 } from "lucide-react";
+import { MoreHorizontal, Eye, ShieldAlert, Trash2, ArrowLeft, PlusCircle } from "lucide-react";
+import * as z from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +35,11 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { useClinic } from "@/context/clinic-context";
 import {
@@ -42,6 +51,9 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/auth-context";
 
 type MedicalCase = {
     id: number;
@@ -53,6 +65,116 @@ type MedicalCase = {
     case_date: string;
     created_at: string;
 };
+
+const medicalCaseSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
+  case_date: z.date({ required_error: "Case date is required" }),
+  initial_note: z.string().optional(),
+});
+
+
+function CreateCaseForm({ onFinished, patientId, clinicId }: { onFinished: () => void, patientId: string | null, clinicId: string | null }) {
+    const { toast } = useToast();
+    const { apiFetch } = useApi();
+    const { user } = useAuth();
+    const [isLoading, setIsLoading] = React.useState(false);
+  
+    const form = useForm<z.infer<typeof medicalCaseSchema>>({
+      resolver: zodResolver(medicalCaseSchema),
+      defaultValues: {
+        title: "",
+        description: "",
+        initial_note: "",
+      },
+    });
+  
+    async function onSubmit(values: z.infer<typeof medicalCaseSchema>) {
+      setIsLoading(true);
+      if (!patientId) {
+          toast({ variant: "destructive", title: "Error", description: "No patient selected."});
+          setIsLoading(false);
+          return;
+      }
+
+      try {
+        const payload: any = {
+            ...values,
+            patient: parseInt(patientId, 10),
+            case_date: format(values.case_date, "yyyy-MM-dd"),
+            is_active: true,
+            records: values.initial_note ? [{ record_type: 'general', note: values.initial_note }] : [],
+        };
+        
+        if (user?.role === 'doctor') {
+            if (!clinicId) {
+                toast({ variant: "destructive", title: "Error", description: "Clinic ID is missing."});
+                setIsLoading(false);
+                return;
+            }
+            payload.clinic_id = parseInt(clinicId, 10);
+        }
+  
+        const response = await apiFetch('/api/patients/create/medical-case/', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+  
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || "Failed to create medical case.");
+        }
+  
+        toast({ title: "Success", description: "Medical case created successfully." });
+        form.reset();
+        onFinished();
+      } catch (error) {
+        if (error instanceof Error && error.message === "Unauthorized") return;
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        toast({ variant: "destructive", title: "Error", description: errorMessage });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  
+    return (
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <DialogHeader>
+            <DialogTitle>Create New Medical Case</DialogTitle>
+            <DialogDescription>Fill in the details for the new case below. An initial note is optional.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <FormField control={form.control} name="title" render={({ field }) => (
+              <FormItem><FormLabel>Case Title</FormLabel><FormControl><Input placeholder="e.g., Annual Check-up" {...field} /></FormControl><FormMessage /></FormItem>
+            )} />
+            <FormField control={form.control} name="description" render={({ field }) => (
+                <FormItem><FormLabel>Case Description</FormLabel><FormControl><Textarea placeholder="Briefly describe the reason for this case." {...field} /></FormControl><FormMessage /></FormItem>
+            )} />
+            <FormField control={form.control} name="case_date" render={({ field }) => (
+                <FormItem className="flex flex-col"><FormLabel>Case Date</FormLabel><Popover><PopoverTrigger asChild>
+                <FormControl>
+                    <Button variant={"outline"} className={cn("w-[240px] pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                </FormControl>
+                </PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+            )} />
+             <FormField control={form.control} name="initial_note" render={({ field }) => (
+                <FormItem><FormLabel>Initial Note (Optional)</FormLabel><FormControl><Textarea placeholder="Add an initial note or observation for this case." {...field} /></FormControl><FormMessage /></FormItem>
+            )} />
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Create Case
+            </Button>
+          </DialogFooter>
+        </form>
+      </Form>
+    );
+}
 
 function DeleteCaseDialog({ caseId, onFinished }: { caseId: number, onFinished: () => void }) {
     const { apiFetch } = useApi();
@@ -174,6 +296,7 @@ function MedicalCasesPage() {
     const { apiFetch } = useApi();
     const { toast } = useToast();
     const { selectedClinic } = useClinic();
+    const router = useRouter();
     const searchParams = useSearchParams();
 
     const [allCases, setAllCases] = React.useState<MedicalCase[]>([]);
@@ -181,8 +304,11 @@ function MedicalCasesPage() {
     const [isLoading, setIsLoading] = React.useState(true);
     const [sorting, setSorting] = React.useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+    const [isFormOpen, setIsFormOpen] = React.useState(false);
     
-    const initialPatientFilter = searchParams.get("patient");
+    const patientNameFilter = searchParams.get("patientName");
+    const patientId = searchParams.get("patientId");
+    const clinicId = searchParams.get("clinicId");
 
     const fetchCases = React.useCallback(async () => {
         setIsLoading(true);
@@ -212,26 +338,31 @@ function MedicalCasesPage() {
             cases = cases.filter(c => c.clinic_name === selectedClinic.clinic_name);
         }
         
-        const patientNameFilter = columnFilters.find(f => f.id === 'patient_name')?.value as string;
+        const manualPatientFilter = columnFilters.find(f => f.id === 'patient_name')?.value as string;
 
-        if(patientNameFilter) {
-            cases = cases.filter(c => c.patient_name.toLowerCase().includes(patientNameFilter.toLowerCase()));
+        if(manualPatientFilter) {
+            cases = cases.filter(c => c.patient_name.toLowerCase().includes(manualPatientFilter.toLowerCase()));
         }
 
         setFilteredCases(cases);
     }, [allCases, selectedClinic, columnFilters]);
 
     React.useEffect(() => {
-        if(initialPatientFilter) {
+        if(patientNameFilter) {
             setColumnFilters(currentFilters => {
                 const existingFilter = currentFilters.find(f => f.id === 'patient_name');
                 if (existingFilter) {
                     return currentFilters;
                 }
-                return [...currentFilters, { id: 'patient_name', value: initialPatientFilter }];
+                return [...currentFilters, { id: 'patient_name', value: patientNameFilter }];
             })
         }
-    }, [initialPatientFilter]);
+    }, [patientNameFilter]);
+    
+    const onFormFinished = () => {
+        setIsFormOpen(false);
+        fetchCases();
+    }
 
 
     const table = useReactTable({
@@ -255,8 +386,16 @@ function MedicalCasesPage() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Medical Cases</CardTitle>
-                <CardDescription>View and manage all medical cases across your clinics.</CardDescription>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <CardTitle>Medical Cases</CardTitle>
+                        <CardDescription>View and manage all medical cases across your clinics.</CardDescription>
+                    </div>
+                     <Button variant="outline" onClick={() => router.push('/dashboard/patients')}>
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Back to Patients
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent>
                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
@@ -268,6 +407,16 @@ function MedicalCasesPage() {
                         }
                         className="w-full sm:max-w-sm"
                     />
+                    <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                        <DialogTrigger asChild>
+                            <Button className="w-full sm:w-auto" disabled={!patientId}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> New Medical Case
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-2xl">
+                             <CreateCaseForm patientId={patientId} clinicId={clinicId} onFinished={onFormFinished} />
+                        </DialogContent>
+                    </Dialog>
                 </div>
                 <div className="rounded-md border">
                     <Table>

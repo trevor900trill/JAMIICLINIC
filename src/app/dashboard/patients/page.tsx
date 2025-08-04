@@ -291,7 +291,7 @@ export const columns: ColumnDef<Patient>[] = [
             <DropdownMenuContent>
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem asChild>
-                <Link href={`/dashboard/medical-cases?patient=${encodeURIComponent(patientName)}`}>
+                <Link href={`/dashboard/medical-cases?patientName=${encodeURIComponent(patientName)}&patientId=${patient.id}&clinicId=${patient.clinic_id}`}>
                     <Eye className="mr-2 h-4 w-4" />
                     View Cases
                 </Link>
@@ -342,8 +342,6 @@ function PatientsPage() {
             if (user.role === 'admin') {
                 setAllPatients(responseData.results);
             } else {
-                // For doctors and staff, the response is an array of clinics
-                // We will flatten this into a single list of patients
                 const allPatientsFromClinics = responseData.flatMap((clinic: any) => 
                     clinic.patients.map((p: Patient) => ({
                         ...p,
@@ -497,4 +495,3 @@ function PatientsPage() {
 }
 
 export default PatientsPage;
-
