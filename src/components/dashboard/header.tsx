@@ -26,7 +26,6 @@ const allNavItems = [
   { href: '/dashboard/staff', label: 'Staff', icon: Users, roles: ['admin', 'doctor'] },
   { href: '/dashboard/clinics', label: 'Clinics', icon: Building, roles: ['admin', 'doctor'] },
   { href: '/dashboard/patients',label: 'Patients', icon: HeartPulse, roles: ['admin', 'doctor', 'staff'] },
-  { href: '/dashboard/medical-cases', label: 'Medical Cases', icon: FileText, roles: ['admin', 'doctor', 'staff'] },
 ]
 
 export function Header() {
@@ -43,6 +42,8 @@ export function Header() {
   let pageTitle = 'Dashboard';
   if (pathname.startsWith('/dashboard/patients/')) {
       pageTitle = 'Patient Details';
+  } else if (pathname.startsWith('/dashboard/medical-cases')) {
+      pageTitle = 'Medical Cases';
   } else {
       pageTitle = navItems.find(item => pathname.startsWith(item.href))?.label ?? 'Dashboard'
   }
