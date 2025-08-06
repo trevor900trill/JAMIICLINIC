@@ -41,7 +41,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
-import { useClinic } from "@/context/clinic-context";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -295,70 +294,43 @@ const columns: ColumnDef<MedicalCase>[] = [
 function MedicalCasesPage() {
     const { apiFetch } = useApi();
     const { toast } = useToast();
-    const { selectedClinic } = useClinic();
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    const [allCases, setAllCases] = React.useState<MedicalCase[]>([]);
-    const [filteredCases, setFilteredCases] = React.useState<MedicalCase[]>([]);
+    const [cases, setCases] = React.useState<MedicalCase[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [sorting, setSorting] = React.useState<SortingState>([]);
-    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [isFormOpen, setIsFormOpen] = React.useState(false);
     
-    const patientNameFilter = searchParams.get("patientName");
     const patientId = searchParams.get("patientId");
     const clinicId = searchParams.get("clinicId");
 
     const fetchCases = React.useCallback(async () => {
         setIsLoading(true);
         try {
-            const response = await apiFetch(`/api/patients/medical-cases/`);
+            let url = `/api/patients/medical-cases/`;
+            if (patientId) {
+                url = `/api/patients/medical-cases/?patient_id=${patientId}`;
+            }
+            const response = await apiFetch(url);
             if (!response.ok) {
                 throw new Error("Failed to fetch medical cases.");
             }
             const casesData = await response.json();
-            setAllCases(casesData);
+            setCases(casesData);
         } catch (error) {
             if (error instanceof Error && error.message === "Unauthorized") return;
             toast({ variant: "destructive", title: "Error", description: "Could not fetch medical cases." });
         } finally {
             setIsLoading(false);
         }
-    }, [apiFetch, toast]);
+    }, [apiFetch, toast, patientId]);
 
     React.useEffect(() => {
         fetchCases();
     }, [fetchCases]);
 
-    React.useEffect(() => {
-        let cases = allCases;
-
-        if (selectedClinic) {
-            cases = cases.filter(c => c.clinic_name === selectedClinic.clinic_name);
-        }
-        
-        const manualPatientFilter = columnFilters.find(f => f.id === 'patient_name')?.value as string;
-
-        if(manualPatientFilter) {
-            cases = cases.filter(c => c.patient_name.toLowerCase().includes(manualPatientFilter.toLowerCase()));
-        }
-
-        setFilteredCases(cases);
-    }, [allCases, selectedClinic, columnFilters]);
-
-    React.useEffect(() => {
-        if(patientNameFilter) {
-            setColumnFilters(currentFilters => {
-                const existingFilter = currentFilters.find(f => f.id === 'patient_name');
-                if (existingFilter) {
-                    return currentFilters;
-                }
-                return [...currentFilters, { id: 'patient_name', value: patientNameFilter }];
-            })
-        }
-    }, [patientNameFilter]);
-    
     const onFormFinished = () => {
         setIsFormOpen(false);
         fetchCases();
@@ -366,7 +338,7 @@ function MedicalCasesPage() {
 
 
     const table = useReactTable({
-        data: filteredCases,
+        data: cases,
         columns,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
@@ -391,16 +363,16 @@ function MedicalCasesPage() {
             </CardHeader>
             <CardContent>
                  <div className="space-y-4">
-                    <Button variant="link" onClick={() => router.push('/dashboard/patients')} className="p-0 h-auto text-primary">
+                     <Button variant="link" onClick={() => router.push('/dashboard/patients')} className="p-0 h-auto text-primary">
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Patients
                     </Button>
                     <div className="flex items-center justify-between gap-4">
                         <Input
-                            placeholder="Filter by patient name..."
-                            value={(table.getColumn("patient_name")?.getFilterValue() as string) ?? ""}
+                            placeholder="Filter by case title..."
+                            value={(table.getColumn("title")?.getFilterValue() as string) ?? ""}
                             onChange={(event) =>
-                                table.getColumn("patient_name")?.setFilterValue(event.target.value)
+                                table.getColumn("title")?.setFilterValue(event.target.value)
                             }
                             className="w-full sm:max-w-sm"
                         />
