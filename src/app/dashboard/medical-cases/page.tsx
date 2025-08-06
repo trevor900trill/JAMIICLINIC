@@ -231,10 +231,8 @@ function MedicalCasesPage() {
     const { toast } = useToast();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { selectedClinic } = useClinic();
 
-    const [allCases, setAllCases] = React.useState<MedicalCase[]>([]);
-    const [filteredCases, setFilteredCases] = React.useState<MedicalCase[]>([]);
+    const [cases, setCases] = React.useState<MedicalCase[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [sorting, setSorting] = React.useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -248,7 +246,7 @@ function MedicalCasesPage() {
         setIsLoading(true);
         try {
             const endpoint = patientId 
-                ? `/api/patients/medical-cases/?patient_id=${patientId}` 
+                ? `/api/patients/medical-cases/${patientId}/` 
                 : '/api/patients/medical-cases/';
 
             const response = await apiFetch(endpoint);
@@ -256,11 +254,18 @@ function MedicalCasesPage() {
                 throw new Error("Failed to fetch medical cases.");
             }
             const casesData = await response.json();
-            setAllCases(Array.isArray(casesData) ? casesData : []);
+            
+            // The endpoint for a single patient might return a single object with a cases array,
+            // or just an array. We need to handle both possibilities.
+            const casesArray = Array.isArray(casesData) 
+                ? casesData 
+                : (casesData.results || []);
+
+            setCases(casesArray);
         } catch (error) {
             if (error instanceof Error && error.message === "Unauthorized") return;
             toast({ variant: "destructive", title: "Error", description: "Could not fetch medical cases." });
-            setAllCases([]);
+            setCases([]);
         } finally {
             setIsLoading(false);
         }
@@ -269,20 +274,6 @@ function MedicalCasesPage() {
     React.useEffect(() => {
         fetchCases();
     }, [fetchCases]);
-    
-     React.useEffect(() => {
-        let casesToFilter = [...allCases];
-
-        if (selectedClinic) {
-            casesToFilter = casesToFilter.filter(c => c.clinic_name === selectedClinic.clinic_name);
-        }
-        
-        if (patientName && patientName !== "patient") {
-             casesToFilter = casesToFilter.filter(c => c.patient_name.toLowerCase().includes(patientName.toLowerCase()));
-        }
-
-        setFilteredCases(casesToFilter);
-    }, [allCases, selectedClinic, patientName]);
 
     const columns: ColumnDef<MedicalCase>[] = [
         {
@@ -347,7 +338,7 @@ function MedicalCasesPage() {
     }
 
     const table = useReactTable({
-        data: filteredCases,
+        data: cases,
         columns,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
@@ -450,3 +441,5 @@ function MedicalCasesPage() {
 }
 
 export default MedicalCasesPage;
+
+    
