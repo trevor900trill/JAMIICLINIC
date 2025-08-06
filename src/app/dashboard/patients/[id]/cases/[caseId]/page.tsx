@@ -214,5 +214,3 @@ function CaseDetailPage() {
 }
 
 export default CaseDetailPage;
-
-    

@@ -4,12 +4,13 @@
 import React from "react";
 import { useApi } from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
     ColumnDef,
     ColumnFiltersState,
     SortingState,
+    VisibilityState,
     flexRender,
     getCoreRowModel,
     getFilteredRowModel,
@@ -17,13 +18,13 @@ import {
     getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table";
-import { MoreHorizontal, Eye, ShieldAlert, Trash2, ArrowLeft, PlusCircle } from "lucide-react";
+import { MoreHorizontal, Eye, ShieldAlert, Trash2, PlusCircle, ArrowLeft } from "lucide-react";
 import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,7 +56,6 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
 import { useClinic } from "@/context/clinic-context";
 
-
 type MedicalCase = {
     id: number;
     title: string;
@@ -74,8 +74,7 @@ const medicalCaseSchema = z.object({
   initial_note: z.string().optional(),
 });
 
-
-function CreateCaseForm({ onFinished, patientId, clinicId }: { onFinished: () => void, patientId: string, clinicId: number | null }) {
+function CreateCaseForm({ onFinished, patientId, clinicId }: { onFinished: () => void, patientId: string | null, clinicId: number | null }) {
     const { toast } = useToast();
     const { apiFetch } = useApi();
     const { user } = useAuth();
@@ -91,8 +90,11 @@ function CreateCaseForm({ onFinished, patientId, clinicId }: { onFinished: () =>
     });
   
     async function onSubmit(values: z.infer<typeof medicalCaseSchema>) {
+      if (!patientId) {
+        toast({ variant: "destructive", title: "Error", description: "Patient ID is missing." });
+        return;
+      }
       setIsLoading(true);
-
       try {
         const payload: any = {
             ...values,
@@ -228,42 +230,55 @@ function MedicalCasesPage() {
     const { apiFetch } = useApi();
     const { toast } = useToast();
     const router = useRouter();
-    const { id } = useParams();
     const searchParams = useSearchParams();
     const { selectedClinic } = useClinic();
 
-    const [cases, setCases] = React.useState<MedicalCase[]>([]);
+    const [allCases, setAllCases] = React.useState<MedicalCase[]>([]);
+    const [filteredCases, setFilteredCases] = React.useState<MedicalCase[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [sorting, setSorting] = React.useState<SortingState>([]);
-    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
     const [isFormOpen, setIsFormOpen] = React.useState(false);
-    
-    const patientId = Array.isArray(id) ? id[0] : id;
-    const clinicId = selectedClinic?.clinic_id ?? null;
-    const patientName = searchParams.get("patientName") ?? "";
+
+    const patientId = searchParams.get("patientId");
+    const patientName = searchParams.get("patientName") ?? "patient";
+    const clinicId = searchParams.get("clinicId");
 
     const fetchCases = React.useCallback(async () => {
-        if (!patientId) return;
         setIsLoading(true);
         try {
-            const response = await apiFetch(`/api/patients/medical-cases/?patient_id=${patientId}`);
+            const response = await apiFetch(`/api/patients/medical-cases/`);
             if (!response.ok) {
                 throw new Error("Failed to fetch medical cases.");
             }
             const casesData = await response.json();
-            setCases(casesData);
+            setAllCases(casesData);
         } catch (error) {
             if (error instanceof Error && error.message === "Unauthorized") return;
             toast({ variant: "destructive", title: "Error", description: "Could not fetch medical cases." });
         } finally {
             setIsLoading(false);
         }
-    }, [apiFetch, toast, patientId]);
+    }, [apiFetch, toast]);
 
     React.useEffect(() => {
         fetchCases();
     }, [fetchCases]);
     
+    React.useEffect(() => {
+        let casesToFilter = allCases;
+
+        if (selectedClinic) {
+            casesToFilter = casesToFilter.filter(c => c.clinic_name === selectedClinic.clinic_name);
+        }
+
+        if (patientName && patientName !== "patient") {
+            casesToFilter = casesToFilter.filter(c => c.patient_name.toLowerCase().includes(patientName.toLowerCase()));
+        }
+
+        setFilteredCases(casesToFilter);
+    }, [allCases, selectedClinic, patientName]);
+
     const columns: ColumnDef<MedicalCase>[] = [
         {
             accessorKey: "title",
@@ -275,15 +290,15 @@ function MedicalCasesPage() {
             header: "Clinic",
             cell: ({ row }) => <div>{row.getValue("clinic_name")}</div>,
         },
+         {
+            accessorKey: "patient_name",
+            header: "Patient",
+            cell: ({ row }) => <div>{row.getValue("patient_name")}</div>,
+        },
         {
             accessorKey: "case_date",
             header: "Date",
             cell: ({ row }) => <div>{new Date(row.getValue("case_date")).toLocaleDateString()}</div>,
-        },
-        {
-            accessorKey: "created_by",
-            header: "Created By",
-            cell: ({ row }) => <div>{row.getValue("created_by")}</div>,
         },
         {
             id: "actions",
@@ -326,9 +341,8 @@ function MedicalCasesPage() {
         fetchCases();
     }
 
-
     const table = useReactTable({
-        data: cases,
+        data: filteredCases,
         columns,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
@@ -347,13 +361,13 @@ function MedicalCasesPage() {
             <CardHeader>
                 <div className="flex justify-between items-start">
                     <div>
-                        <CardTitle>Medical Cases for {patientName}</CardTitle>
-                        <CardDescription>View and manage all medical cases for this patient.</CardDescription>
+                        <CardTitle>Medical Cases for {patientName !== 'patient' ? patientName : 'All Patients'}</CardTitle>
+                        <CardDescription>View and manage all medical cases.</CardDescription>
                     </div>
                 </div>
             </CardHeader>
             <CardContent>
-                 <div className="space-y-4">
+                <div className="space-y-4">
                      <Button variant="link" onClick={() => router.push('/dashboard/patients')} className="p-0 h-auto text-primary">
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Patients
@@ -374,7 +388,7 @@ function MedicalCasesPage() {
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-2xl">
-                                <CreateCaseForm patientId={patientId} clinicId={clinicId} onFinished={onFormFinished} />
+                                <CreateCaseForm patientId={patientId} clinicId={clinicId ? parseInt(clinicId) : null} onFinished={onFormFinished} />
                             </DialogContent>
                         </Dialog>
                     </div>
@@ -404,7 +418,7 @@ function MedicalCasesPage() {
                                 </TableRow>
                             ) : table.getRowModel().rows?.length ? (
                                 table.getRowModel().rows.map((row) => (
-                                    <TableRow key={row.id}>
+                                    <TableRow key={row.original.id}>
                                         {row.getVisibleCells().map((cell) => (
                                             <TableCell key={cell.id}>
                                                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -415,7 +429,7 @@ function MedicalCasesPage() {
                             ) : (
                                 <TableRow>
                                     <TableCell colSpan={columns.length} className="h-24 text-center">
-                                        No cases found for this patient.
+                                        No cases found.
                                     </TableCell>
                                 </TableRow>
                             )}
