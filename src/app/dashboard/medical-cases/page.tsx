@@ -231,8 +231,10 @@ function MedicalCasesPage() {
     const { toast } = useToast();
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { selectedClinic } = useClinic();
 
-    const [cases, setCases] = React.useState<MedicalCase[]>([]);
+    const [allCases, setAllCases] = React.useState<MedicalCase[]>([]);
+    const [filteredCases, setFilteredCases] = React.useState<MedicalCase[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [sorting, setSorting] = React.useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -254,11 +256,11 @@ function MedicalCasesPage() {
                 throw new Error("Failed to fetch medical cases.");
             }
             const casesData = await response.json();
-            setCases(Array.isArray(casesData) ? casesData : []);
+            setAllCases(Array.isArray(casesData) ? casesData : []);
         } catch (error) {
             if (error instanceof Error && error.message === "Unauthorized") return;
             toast({ variant: "destructive", title: "Error", description: "Could not fetch medical cases." });
-            setCases([]);
+            setAllCases([]);
         } finally {
             setIsLoading(false);
         }
@@ -267,6 +269,20 @@ function MedicalCasesPage() {
     React.useEffect(() => {
         fetchCases();
     }, [fetchCases]);
+    
+     React.useEffect(() => {
+        let casesToFilter = [...allCases];
+
+        if (selectedClinic) {
+            casesToFilter = casesToFilter.filter(c => c.clinic_name === selectedClinic.clinic_name);
+        }
+        
+        if (patientName && patientName !== "patient") {
+             casesToFilter = casesToFilter.filter(c => c.patient_name.toLowerCase().includes(patientName.toLowerCase()));
+        }
+
+        setFilteredCases(casesToFilter);
+    }, [allCases, selectedClinic, patientName]);
 
     const columns: ColumnDef<MedicalCase>[] = [
         {
@@ -331,7 +347,7 @@ function MedicalCasesPage() {
     }
 
     const table = useReactTable({
-        data: cases,
+        data: filteredCases,
         columns,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
@@ -434,5 +450,3 @@ function MedicalCasesPage() {
 }
 
 export default MedicalCasesPage;
-
-    
