@@ -4,7 +4,7 @@
 import React from "react";
 import { useApi } from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
     ColumnDef,
@@ -53,6 +53,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
+import { useClinic } from "@/context/clinic-context";
+
 
 type MedicalCase = {
     id: number;
@@ -73,7 +75,7 @@ const medicalCaseSchema = z.object({
 });
 
 
-function CreateCaseForm({ onFinished, patientId, clinicId }: { onFinished: () => void, patientId: string | null, clinicId: string | null }) {
+function CreateCaseForm({ onFinished, patientId, clinicId }: { onFinished: () => void, patientId: string, clinicId: number | null }) {
     const { toast } = useToast();
     const { apiFetch } = useApi();
     const { user } = useAuth();
@@ -90,11 +92,6 @@ function CreateCaseForm({ onFinished, patientId, clinicId }: { onFinished: () =>
   
     async function onSubmit(values: z.infer<typeof medicalCaseSchema>) {
       setIsLoading(true);
-      if (!patientId) {
-          toast({ variant: "destructive", title: "Error", description: "No patient selected."});
-          setIsLoading(false);
-          return;
-      }
 
       try {
         const payload: any = {
@@ -111,7 +108,7 @@ function CreateCaseForm({ onFinished, patientId, clinicId }: { onFinished: () =>
                 setIsLoading(false);
                 return;
             }
-            payload.clinic_id = parseInt(clinicId, 10);
+            payload.clinic_id = clinicId;
         }
   
         const response = await apiFetch('/api/patients/create/medical-case/', {
@@ -227,75 +224,13 @@ function DeleteCaseDialog({ caseId, onFinished }: { caseId: number, onFinished: 
 }
 
 
-const columns: ColumnDef<MedicalCase>[] = [
-    {
-        accessorKey: "title",
-        header: "Case Title",
-        cell: ({ row }) => <div className="font-medium">{row.getValue("title")}</div>,
-    },
-    {
-        accessorKey: "patient_name",
-        header: "Patient",
-        cell: ({ row }) => <div>{row.getValue("patient_name")}</div>,
-    },
-    {
-        accessorKey: "clinic_name",
-        header: "Clinic",
-        cell: ({ row }) => <div>{row.getValue("clinic_name")}</div>,
-    },
-    {
-        accessorKey: "case_date",
-        header: "Date",
-        cell: ({ row }) => <div>{new Date(row.getValue("case_date")).toLocaleDateString()}</div>,
-    },
-    {
-        accessorKey: "created_by",
-        header: "Created By",
-        cell: ({ row }) => <div>{row.getValue("created_by")}</div>,
-    },
-    {
-        id: "actions",
-        enableHiding: false,
-        cell: ({ row, table }) => {
-            const caseItem = row.original;
-            const meta = table.options.meta as { onActionFinished: () => void } | undefined;
-
-            return (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem asChild>
-                            <Link href={`/dashboard/patients/${caseItem.id}/cases/${caseItem.id}`}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                            </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                            <Link href={`/dashboard/medical-cases/${caseItem.id}/complications`}>
-                                <ShieldAlert className="mr-2 h-4 w-4" />
-                                Manage Complication
-                            </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DeleteCaseDialog caseId={caseItem.id} onFinished={meta?.onActionFinished ?? (() => {})} />
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            );
-        },
-    },
-];
-
 function MedicalCasesPage() {
     const { apiFetch } = useApi();
     const { toast } = useToast();
     const router = useRouter();
+    const { id } = useParams();
     const searchParams = useSearchParams();
+    const { selectedClinic } = useClinic();
 
     const [cases, setCases] = React.useState<MedicalCase[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
@@ -303,17 +238,15 @@ function MedicalCasesPage() {
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [isFormOpen, setIsFormOpen] = React.useState(false);
     
-    const patientId = searchParams.get("patientId");
-    const clinicId = searchParams.get("clinicId");
+    const patientId = Array.isArray(id) ? id[0] : id;
+    const clinicId = selectedClinic?.clinic_id ?? null;
+    const patientName = searchParams.get("patientName") ?? "";
 
     const fetchCases = React.useCallback(async () => {
+        if (!patientId) return;
         setIsLoading(true);
         try {
-            let url = `/api/patients/medical-cases/`;
-            if (patientId) {
-                url = `/api/patients/medical-cases/?patient_id=${patientId}`;
-            }
-            const response = await apiFetch(url);
+            const response = await apiFetch(`/api/patients/medical-cases/?patient_id=${patientId}`);
             if (!response.ok) {
                 throw new Error("Failed to fetch medical cases.");
             }
@@ -330,6 +263,63 @@ function MedicalCasesPage() {
     React.useEffect(() => {
         fetchCases();
     }, [fetchCases]);
+    
+    const columns: ColumnDef<MedicalCase>[] = [
+        {
+            accessorKey: "title",
+            header: "Case Title",
+            cell: ({ row }) => <div className="font-medium">{row.getValue("title")}</div>,
+        },
+        {
+            accessorKey: "clinic_name",
+            header: "Clinic",
+            cell: ({ row }) => <div>{row.getValue("clinic_name")}</div>,
+        },
+        {
+            accessorKey: "case_date",
+            header: "Date",
+            cell: ({ row }) => <div>{new Date(row.getValue("case_date")).toLocaleDateString()}</div>,
+        },
+        {
+            accessorKey: "created_by",
+            header: "Created By",
+            cell: ({ row }) => <div>{row.getValue("created_by")}</div>,
+        },
+        {
+            id: "actions",
+            enableHiding: false,
+            cell: ({ row }) => {
+                const caseItem = row.original;
+                return (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem asChild>
+                                <Link href={`/dashboard/patients/${patientId}/cases/${caseItem.id}`}>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    View Details
+                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link href={`/dashboard/medical-cases/${caseItem.id}/complications`}>
+                                    <ShieldAlert className="mr-2 h-4 w-4" />
+                                    Manage Complication
+                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DeleteCaseDialog caseId={caseItem.id} onFinished={fetchCases} />
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                );
+            },
+        },
+    ];
 
     const onFormFinished = () => {
         setIsFormOpen(false);
@@ -350,16 +340,17 @@ function MedicalCasesPage() {
             sorting,
             columnFilters,
         },
-        meta: {
-            onActionFinished: fetchCases
-        }
     });
 
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Medical Cases</CardTitle>
-                <CardDescription>View and manage all medical cases across your clinics.</CardDescription>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <CardTitle>Medical Cases for {patientName}</CardTitle>
+                        <CardDescription>View and manage all medical cases for this patient.</CardDescription>
+                    </div>
+                </div>
             </CardHeader>
             <CardContent>
                  <div className="space-y-4">
@@ -424,7 +415,7 @@ function MedicalCasesPage() {
                             ) : (
                                 <TableRow>
                                     <TableCell colSpan={columns.length} className="h-24 text-center">
-                                        No cases found.
+                                        No cases found for this patient.
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -440,3 +431,5 @@ function MedicalCasesPage() {
 }
 
 export default MedicalCasesPage;
+
+    

@@ -27,7 +27,7 @@ const complicationSchema = z.object({
 type ComplicationFormValues = z.infer<typeof complicationSchema>;
 
 function ComplicationPage() {
-    const { id } = useParams();
+    const { caseId } = useParams();
     const router = useRouter();
     const { apiFetch } = useApi();
     const { toast } = useToast();
@@ -45,15 +45,15 @@ function ComplicationPage() {
         },
     });
 
-    const caseId = Array.isArray(id) ? id[0] : id;
+    const id = Array.isArray(caseId) ? caseId[0] : caseId;
 
     React.useEffect(() => {
-        if (!caseId) return;
+        if (!id) return;
 
         async function fetchComplication() {
             setIsLoading(true);
             try {
-                const response = await apiFetch(`/api/patients/medical-cases/${caseId}/complication/`);
+                const response = await apiFetch(`/api/patients/medical-cases/${id}/complication/`);
                 if (response.ok) {
                     const data = await response.json();
                     form.reset(data);
@@ -70,12 +70,12 @@ function ComplicationPage() {
         }
 
         fetchComplication();
-    }, [caseId, apiFetch, toast, form]);
+    }, [id, apiFetch, toast, form]);
 
     async function onSubmit(values: ComplicationFormValues) {
         setIsSubmitting(true);
         try {
-            const response = await apiFetch(`/api/patients/medical-cases/${caseId}/complication/`, {
+            const response = await apiFetch(`/api/patients/medical-cases/${id}/complication/`, {
                 method: "POST",
                 body: JSON.stringify(values),
             });
@@ -97,7 +97,7 @@ function ComplicationPage() {
     async function handleDelete() {
         setIsDeleting(true);
         try {
-            const response = await apiFetch(`/api/patients/medical-cases/${caseId}/complication/delete/`, {
+            const response = await apiFetch(`/api/patients/medical-cases/${id}/complication/delete/`, {
                 method: 'DELETE',
             });
 
@@ -247,3 +247,5 @@ function ComplicationPage() {
 }
 
 export default ComplicationPage;
+
+    

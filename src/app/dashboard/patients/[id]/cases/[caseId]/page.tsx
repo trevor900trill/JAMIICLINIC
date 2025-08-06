@@ -6,12 +6,10 @@ import { useApi } from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, User, Mail, Phone, Home, FileText, Calendar, PlusCircle, ArrowLeft, Stethoscope, Paperclip, Clock } from "lucide-react";
+import { Loader2, User, Home, FileText, Calendar, PlusCircle, ArrowLeft, Stethoscope, Paperclip, Clock } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/context/auth-context";
 
 type MedicalRecord = {
     id: number;
@@ -42,6 +40,8 @@ function CaseDetailPage() {
     const { toast } = useToast();
     const [caseDetails, setCaseDetails] = React.useState<CaseDetails | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
+    
+    const patientId = Array.isArray(id) ? id[0] : id;
 
     React.useEffect(() => {
         async function fetchData() {
@@ -106,7 +106,7 @@ function CaseDetailPage() {
                             <CardTitle className="text-2xl">{caseDetails.title}</CardTitle>
                             <CardDescription>{caseDetails.description}</CardDescription>
                         </div>
-                        <Button variant="outline" onClick={() => router.push(`/dashboard/patients/${id}/cases`)}>
+                        <Button variant="outline" onClick={() => router.push(`/dashboard/patients/${patientId}/cases`)}>
                             <ArrowLeft className="mr-2 h-4 w-4" />
                             Back to Cases
                         </Button>
@@ -215,3 +215,4 @@ function CaseDetailPage() {
 
 export default CaseDetailPage;
 
+    

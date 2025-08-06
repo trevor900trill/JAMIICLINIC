@@ -278,6 +278,7 @@ export const columns: ColumnDef<Patient>[] = [
     enableHiding: false,
     cell: ({ row }) => {
       const patient = row.original;
+      const patientName = patient.full_name || `${patient.first_name} ${patient.last_name}`;
       
       return (
         <DropdownMenu>
@@ -290,7 +291,7 @@ export const columns: ColumnDef<Patient>[] = [
             <DropdownMenuContent>
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem asChild>
-                <Link href={`/dashboard/medical-cases?patientId=${patient.id}&clinicId=${patient.clinic_id}`}>
+                <Link href={`/dashboard/patients/${patient.id}/cases?patientName=${encodeURIComponent(patientName)}`}>
                     <Eye className="mr-2 h-4 w-4" />
                     View Cases
                 </Link>
@@ -494,3 +495,5 @@ function PatientsPage() {
 }
 
 export default PatientsPage;
+
+    
