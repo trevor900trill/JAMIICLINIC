@@ -290,12 +290,6 @@ export const columns: ColumnDef<Patient>[] = [
             </DropdownMenuTrigger>
             <DropdownMenuContent>
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem asChild>
-                <Link href={`/dashboard/medical-cases?patientId=${patient.id}&patientName=${encodeURIComponent(patientName)}&clinicId=${patient.clinic_id}`}>
-                    <Eye className="mr-2 h-4 w-4" />
-                    View Cases
-                </Link>
-            </DropdownMenuItem>
             <DropdownMenuItem>Edit Details</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DeletePatientDialog />
@@ -495,3 +489,5 @@ function PatientsPage() {
 }
 
 export default PatientsPage;
+
+    
