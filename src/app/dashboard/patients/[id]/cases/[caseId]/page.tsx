@@ -58,7 +58,7 @@ type CaseDetails = {
 const recordSchema = z.object({
   record_type: z.string().min(1, "Record type is required."),
   note: z.string().min(1, "Note is required."),
-  file: z.string().url().optional().or(z.literal('')),
+  file: z.instanceof(FileList).optional(),
 });
 
 const scheduleSchema = z.object({
@@ -75,15 +75,22 @@ function AddRecordForm({ caseId, onFinished }: { caseId: string, onFinished: () 
 
     const form = useForm<z.infer<typeof recordSchema>>({
         resolver: zodResolver(recordSchema),
-        defaultValues: { record_type: "", note: "", file: "" },
+        defaultValues: { record_type: "", note: "" },
     });
 
     async function onSubmit(values: z.infer<typeof recordSchema>) {
         setIsLoading(true);
         try {
+            const formData = new FormData();
+            formData.append('record_type', values.record_type);
+            formData.append('note', values.note);
+            if (values.file && values.file.length > 0) {
+                formData.append('file', values.file[0]);
+            }
+
             const response = await apiFetch(`/api/patients/medical-cases/${caseId}/add-record/`, {
                 method: "POST",
-                body: JSON.stringify(values),
+                body: formData,
             });
             if (!response.ok) throw new Error("Failed to add record.");
             toast({ title: "Success", description: "Medical record added." });
@@ -122,7 +129,13 @@ function AddRecordForm({ caseId, onFinished }: { caseId: string, onFinished: () 
                         <FormItem><FormLabel>Note</FormLabel><FormControl><Textarea placeholder="Detailed notes..." {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="file" render={({ field }) => (
-                        <FormItem><FormLabel>File URL (Optional)</FormLabel><FormControl><Input placeholder="https://example.com/scan.pdf" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem>
+                            <FormLabel>Attachment (Optional)</FormLabel>
+                            <FormControl>
+                                <Input type="file" {...form.register('file')} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
                     )} />
                 </div>
                 <DialogFooter>
@@ -435,5 +448,3 @@ function CaseDetailPage() {
 }
 
 export default CaseDetailPage;
-
-    
