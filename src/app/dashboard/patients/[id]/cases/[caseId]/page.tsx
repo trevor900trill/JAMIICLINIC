@@ -39,7 +39,7 @@ type MedicalRecord = {
 
 type TreatmentSchedule = {
     id: number;
-    treatment_name: string;
+    hospital: string;
     description: string;
     scheduled_date: string;
     status: string;
@@ -545,7 +545,7 @@ function CaseDetailPage() {
                                         <div key={schedule.id} className="border p-4 rounded-lg bg-background/50">
                                             <div className="flex justify-between items-start">
                                                 <div>
-                                                    <p className="font-semibold">{schedule.treatment_name}</p>
+                                                    <p className="font-semibold">{schedule.hospital}</p>
                                                     <p className="text-sm text-muted-foreground">{schedule.description}</p>
                                                 </div>
                                                 <div className="flex items-center gap-1">
@@ -590,3 +590,5 @@ function CaseDetailPage() {
 }
 
 export default CaseDetailPage;
+
+    
