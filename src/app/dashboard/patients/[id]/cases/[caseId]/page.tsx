@@ -5,11 +5,25 @@ import React from "react";
 import { useApi } from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
 import { useParams, useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { format } from "date-fns";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, User, Home, FileText, Calendar, PlusCircle, ArrowLeft, Stethoscope, Paperclip, Clock } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 type MedicalRecord = {
     id: number;
@@ -20,18 +34,189 @@ type MedicalRecord = {
     created_at: string;
 };
 
+type TreatmentSchedule = {
+    id: number;
+    treatment_name: string;
+    description: string;
+    scheduled_date: string;
+    status: string;
+}
+
 type CaseDetails = {
     id: number;
     title: string;
-    description: string;
+    description:string;
     clinic_name: string;
     patient_name: string;
     created_by: string;
     case_date: string;
     created_at: string;
     records?: MedicalRecord[];
+    treatment_schedules?: TreatmentSchedule[];
 };
 
+const recordSchema = z.object({
+  record_type: z.string().min(1, "Record type is required."),
+  note: z.string().min(1, "Note is required."),
+  file: z.string().url().optional().or(z.literal('')),
+});
+
+const scheduleSchema = z.object({
+  treatment_name: z.string().min(1, "Treatment name is required."),
+  description: z.string().min(1, "Description is required."),
+  scheduled_date: z.date({ required_error: "A date is required." }),
+  status: z.string().min(1, "Status is required."),
+});
+
+function AddRecordForm({ caseId, onFinished }: { caseId: string, onFinished: () => void }) {
+    const { apiFetch } = useApi();
+    const { toast } = useToast();
+    const [isLoading, setIsLoading] = React.useState(false);
+
+    const form = useForm<z.infer<typeof recordSchema>>({
+        resolver: zodResolver(recordSchema),
+        defaultValues: { record_type: "", note: "", file: "" },
+    });
+
+    async function onSubmit(values: z.infer<typeof recordSchema>) {
+        setIsLoading(true);
+        try {
+            const response = await apiFetch(`/api/patients/medical-cases/${caseId}/add-record/`, {
+                method: "POST",
+                body: JSON.stringify(values),
+            });
+            if (!response.ok) throw new Error("Failed to add record.");
+            toast({ title: "Success", description: "Medical record added." });
+            form.reset();
+            onFinished();
+        } catch (error) {
+            if (error instanceof Error && error.message === "Unauthorized") return;
+            toast({ variant: "destructive", title: "Error", description: "Could not add record." });
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+                <DialogHeader>
+                    <DialogTitle>Add Medical Record</DialogTitle>
+                    <DialogDescription>Add a new record for this medical case.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <FormField control={form.control} name="record_type" render={({ field }) => (
+                        <FormItem><FormLabel>Record Type</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                    <SelectItem value="NOTE">Note</SelectItem>
+                                    <SelectItem value="PRESCRIPTION">Prescription</SelectItem>
+                                    <SelectItem value="SCAN">Scan</SelectItem>
+                                    <SelectItem value="LAB_RESULT">Lab Result</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        <FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="note" render={({ field }) => (
+                        <FormItem><FormLabel>Note</FormLabel><FormControl><Textarea placeholder="Detailed notes..." {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="file" render={({ field }) => (
+                        <FormItem><FormLabel>File URL (Optional)</FormLabel><FormControl><Input placeholder="https://example.com/scan.pdf" {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                </div>
+                <DialogFooter>
+                    <Button type="submit" disabled={isLoading}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Add Record
+                    </Button>
+                </DialogFooter>
+            </form>
+        </Form>
+    );
+}
+
+function ScheduleTreatmentForm({ caseId, onFinished }: { caseId: string, onFinished: () => void }) {
+    const { apiFetch } = useApi();
+    const { toast } = useToast();
+    const [isLoading, setIsLoading] = React.useState(false);
+
+    const form = useForm<z.infer<typeof scheduleSchema>>({
+        resolver: zodResolver(scheduleSchema),
+        defaultValues: { treatment_name: "", description: "", status: "SCHEDULED" },
+    });
+
+    async function onSubmit(values: z.infer<typeof scheduleSchema>) {
+        setIsLoading(true);
+        const payload = {
+            ...values,
+            medical_case: parseInt(caseId),
+            scheduled_date: format(values.scheduled_date, "yyyy-MM-dd'T'HH:mm:ss'Z'"),
+        }
+        try {
+            const response = await apiFetch(`/api/patients/treatment-schedules/create/`, {
+                method: "POST",
+                body: JSON.stringify(payload),
+            });
+            if (!response.ok) throw new Error("Failed to schedule treatment.");
+            toast({ title: "Success", description: "Treatment scheduled." });
+            form.reset();
+            onFinished();
+        } catch (error) {
+            if (error instanceof Error && error.message === "Unauthorized") return;
+            toast({ variant: "destructive", title: "Error", description: "Could not schedule treatment." });
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+                <DialogHeader>
+                    <DialogTitle>Schedule Treatment</DialogTitle>
+                    <DialogDescription>Schedule a new treatment for this medical case.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <FormField control={form.control} name="treatment_name" render={({ field }) => (
+                        <FormItem><FormLabel>Treatment Name</FormLabel><FormControl><Input placeholder="e.g., Physiotherapy Session" {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="description" render={({ field }) => (
+                        <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Describe the treatment..." {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="scheduled_date" render={({ field }) => (
+                        <FormItem className="flex flex-col"><FormLabel>Scheduled Date</FormLabel><Popover><PopoverTrigger asChild>
+                        <FormControl>
+                            <Button variant={"outline"} className={cn("w-[240px] pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                        </FormControl>
+                        </PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><CalendarComponent mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+                    )} />
+                     <FormField control={form.control} name="status" render={({ field }) => (
+                        <FormItem><FormLabel>Status</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Select a status" /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                    <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+                                    <SelectItem value="COMPLETED">Completed</SelectItem>
+                                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        <FormMessage /></FormItem>
+                    )} />
+                </div>
+                <DialogFooter>
+                    <Button type="submit" disabled={isLoading}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Schedule
+                    </Button>
+                </DialogFooter>
+            </form>
+        </Form>
+    );
+}
 
 function CaseDetailPage() {
     const { id, caseId } = useParams();
@@ -40,37 +225,39 @@ function CaseDetailPage() {
     const { toast } = useToast();
     const [caseDetails, setCaseDetails] = React.useState<CaseDetails | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
+    const [isRecordFormOpen, setIsRecordFormOpen] = React.useState(false);
+    const [isScheduleFormOpen, setIsScheduleFormOpen] = React.useState(false);
     
     const patientId = Array.isArray(id) ? id[0] : id;
+    const caseIdStr = Array.isArray(caseId) ? caseId[0] : caseId;
+
+    const fetchData = React.useCallback(async () => {
+        if (!caseIdStr) return;
+        setIsLoading(true);
+        try {
+            const response = await apiFetch(`/api/patients/medical-cases/${caseIdStr}/`);
+            if (!response.ok) {
+                if (response.status === 404) {
+                    toast({ variant: "destructive", title: "Error", description: "Medical case not found." });
+                } else {
+                    throw new Error("Failed to fetch case details.");
+                }
+            } else {
+                const data = await response.json();
+                setCaseDetails(data);
+            }
+        } catch (error) {
+            if (error instanceof Error && error.message === "Unauthorized") return;
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+            toast({ variant: "destructive", title: "Error", description: errorMessage });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [caseIdStr, apiFetch, toast]);
 
     React.useEffect(() => {
-        async function fetchData() {
-            if (!caseId) return;
-            setIsLoading(true);
-            try {
-                const response = await apiFetch(`/api/patients/medical-cases/${caseId}/`);
-
-                if (!response.ok) {
-                    if (response.status === 404) {
-                        toast({ variant: "destructive", title: "Error", description: "Medical case not found." });
-                    } else {
-                        throw new Error("Failed to fetch case details.");
-                    }
-                } else {
-                    const data = await response.json();
-                    setCaseDetails(data);
-                }
-
-            } catch (error) {
-                if (error instanceof Error && error.message === "Unauthorized") return;
-                const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-                toast({ variant: "destructive", title: "Error", description: errorMessage });
-            } finally {
-                setIsLoading(false);
-            }
-        }
         fetchData();
-    }, [caseId, apiFetch, toast]);
+    }, [fetchData]);
 
     if (isLoading) {
         return (
@@ -182,10 +369,14 @@ function CaseDetailPage() {
                             )}
                         </CardContent>
                          <CardFooter>
-                            <Button>
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Add Record
-                            </Button>
+                            <Dialog open={isRecordFormOpen} onOpenChange={setIsRecordFormOpen}>
+                                <DialogTrigger asChild>
+                                    <Button><PlusCircle className="mr-2 h-4 w-4" /> Add Record</Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <AddRecordForm caseId={caseIdStr} onFinished={() => { setIsRecordFormOpen(false); fetchData(); }} />
+                                </DialogContent>
+                            </Dialog>
                         </CardFooter>
                     </Card>
                 </div>
@@ -196,16 +387,46 @@ function CaseDetailPage() {
                             <CardDescription>Upcoming treatments and appointments.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                             <div className="text-center py-10 border-2 border-dashed rounded-lg">
-                                <Calendar className="mx-auto h-12 w-12 text-muted-foreground" />
-                                <h3 className="mt-2 text-sm font-semibold">No Schedules</h3>
-                                <p className="mt-1 text-sm text-muted-foreground">No treatments have been scheduled for this case.</p>
-                                <Button className="mt-4" size="sm">
-                                    <PlusCircle className="mr-2 h-4 w-4" />
-                                    Schedule Treatment
-                                </Button>
-                            </div>
+                             {caseDetails.treatment_schedules && caseDetails.treatment_schedules.length > 0 ? (
+                                <div className="space-y-4">
+                                    {caseDetails.treatment_schedules.map(schedule => (
+                                        <div key={schedule.id} className="border p-4 rounded-lg bg-background/50">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <p className="font-semibold">{schedule.treatment_name}</p>
+                                                    <p className="text-sm text-muted-foreground">{schedule.description}</p>
+                                                </div>
+                                                <Badge>{schedule.status}</Badge>
+                                            </div>
+                                             <Separator className="my-3"/>
+                                            <div className="flex items-center text-xs text-muted-foreground">
+                                                <Calendar className="h-3 w-3 mr-1" />
+                                                <span>{new Date(schedule.scheduled_date).toLocaleDateString()}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                             ) : (
+                                <div className="text-center py-10 border-2 border-dashed rounded-lg">
+                                    <Calendar className="mx-auto h-12 w-12 text-muted-foreground" />
+                                    <h3 className="mt-2 text-sm font-semibold">No Schedules</h3>
+                                    <p className="mt-1 text-sm text-muted-foreground">No treatments have been scheduled for this case.</p>
+                                </div>
+                             )}
                         </CardContent>
+                         <CardFooter>
+                             <Dialog open={isScheduleFormOpen} onOpenChange={setIsScheduleFormOpen}>
+                                <DialogTrigger asChild>
+                                    <Button className="w-full" size="sm">
+                                        <PlusCircle className="mr-2 h-4 w-4" />
+                                        Schedule Treatment
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <ScheduleTreatmentForm caseId={caseIdStr} onFinished={() => { setIsScheduleFormOpen(false); fetchData(); }} />
+                                </DialogContent>
+                            </Dialog>
+                        </CardFooter>
                     </Card>
                 </div>
             </div>
@@ -214,3 +435,5 @@ function CaseDetailPage() {
 }
 
 export default CaseDetailPage;
+
+    
