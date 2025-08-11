@@ -9,13 +9,15 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
+import Link from "next/link";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, User, Home, FileText, Calendar, PlusCircle, ArrowLeft, Stethoscope, Paperclip, Clock, Trash2 } from "lucide-react";
+import { Loader2, User, Home, FileText, Calendar, PlusCircle, ArrowLeft, Stethoscope, Paperclip, Clock, Trash2, MoreVertical, Ban } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -78,6 +80,7 @@ function AddRecordForm({ caseId, onFinished }: { caseId: string, onFinished: () 
         resolver: zodResolver(recordSchema),
         defaultValues: { record_type: "", note: "" },
     });
+    const fileRef = form.register('file');
 
     async function onSubmit(values: z.infer<typeof recordSchema>) {
         setIsLoading(true);
@@ -133,7 +136,7 @@ function AddRecordForm({ caseId, onFinished }: { caseId: string, onFinished: () 
                         <FormItem>
                             <FormLabel>Attachment (Optional)</FormLabel>
                             <FormControl>
-                                <Input type="file" {...form.register('file')} />
+                                <Input type="file" {...fileRef} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -164,11 +167,10 @@ function ScheduleTreatmentForm({ caseId, onFinished }: { caseId: string, onFinis
         setIsLoading(true);
         const payload = {
             ...values,
-            medical_case: parseInt(caseId),
             scheduled_date: format(values.scheduled_date, "yyyy-MM-dd'T'HH:mm:ss'Z'"),
         }
         try {
-            const response = await apiFetch(`/api/patients/treatment-schedules/create/`, {
+            const response = await apiFetch(`/api/patients/medical-cases/${caseId}/treatment-schedules/create/`, {
                 method: "POST",
                 body: JSON.stringify(payload),
             });
@@ -280,6 +282,99 @@ function DeleteRecordDialog({ caseId, recordId, onFinished }: { caseId: string, 
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+    );
+}
+
+function TreatmentScheduleActions({ caseId, schedule, onFinished }: { caseId: string, schedule: TreatmentSchedule, onFinished: () => void }) {
+    const { apiFetch } = useApi();
+    const { toast } = useToast();
+    const [isCancelling, setIsCancelling] = React.useState(false);
+    const [isDeleting, setIsDeleting] = React.useState(false);
+
+    async function handleCancel() {
+        setIsCancelling(true);
+        try {
+            const response = await apiFetch(`/api/patients/medical-cases/${caseId}/treatment-schedules/${schedule.id}/cancel/`, {
+                method: 'POST',
+            });
+            if (!response.ok) throw new Error("Failed to cancel treatment schedule.");
+            toast({ title: "Success", description: "Treatment schedule cancelled." });
+            onFinished();
+        } catch (error) {
+            if (error instanceof Error && error.message === "Unauthorized") return;
+            toast({ variant: "destructive", title: "Error", description: "Could not cancel schedule." });
+        } finally {
+            setIsCancelling(false);
+        }
+    }
+
+    async function handleDelete() {
+        setIsDeleting(true);
+        try {
+            const response = await apiFetch(`/api/patients/medical-cases/${caseId}/treatment-schedules/${schedule.id}/delete/`, {
+                method: 'DELETE',
+            });
+            if (!response.ok) throw new Error("Failed to delete treatment schedule.");
+            toast({ title: "Success", description: "Treatment schedule deleted." });
+            onFinished();
+        } catch (error) {
+            if (error instanceof Error && error.message === "Unauthorized") return;
+            toast({ variant: "destructive", title: "Error", description: "Could not delete schedule." });
+        } finally {
+            setIsDeleting(false);
+        }
+    }
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6">
+                    <MoreVertical className="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} disabled={schedule.status === 'CANCELLED'}>
+                             <Ban className="mr-2 h-4 w-4" /> Cancel
+                        </DropdownMenuItem>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Cancel Treatment?</AlertDialogTitle>
+                            <AlertDialogDescription>Are you sure you want to cancel this treatment schedule?</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Back</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleCancel} disabled={isCancelling}>
+                                {isCancelling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Continue
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
+                             <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                    </AlertDialogTrigger>
+                     <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Treatment?</AlertDialogTitle>
+                            <AlertDialogDescription>This action cannot be undone. This will permanently delete this treatment schedule.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Delete
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 }
 
@@ -464,7 +559,10 @@ function CaseDetailPage() {
                                                     <p className="font-semibold">{schedule.treatment_name}</p>
                                                     <p className="text-sm text-muted-foreground">{schedule.description}</p>
                                                 </div>
-                                                <Badge>{schedule.status}</Badge>
+                                                <div className="flex items-center gap-1">
+                                                    <Badge>{schedule.status}</Badge>
+                                                    <TreatmentScheduleActions caseId={caseIdStr} schedule={schedule} onFinished={fetchData} />
+                                                </div>
                                             </div>
                                              <Separator className="my-3"/>
                                             <div className="flex items-center text-xs text-muted-foreground">
@@ -503,3 +601,5 @@ function CaseDetailPage() {
 }
 
 export default CaseDetailPage;
+
+    
