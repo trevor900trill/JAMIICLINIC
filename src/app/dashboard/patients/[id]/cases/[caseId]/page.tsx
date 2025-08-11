@@ -12,7 +12,7 @@ import { format } from "date-fns";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, User, Home, FileText, Calendar, PlusCircle, ArrowLeft, Stethoscope, Paperclip, Clock } from "lucide-react";
+import { Loader2, User, Home, FileText, Calendar, PlusCircle, ArrowLeft, Stethoscope, Paperclip, Clock, Trash2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -24,6 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarIcon } from "lucide-react";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 type MedicalRecord = {
     id: number;
@@ -88,7 +89,7 @@ function AddRecordForm({ caseId, onFinished }: { caseId: string, onFinished: () 
                 formData.append('file', values.file[0]);
             }
 
-            const response = await apiFetch(`/api/patients/medical-cases/${caseId}/add-record/`, {
+            const response = await apiFetch(`/api/patients/medical-cases/${caseId}/records/`, {
                 method: "POST",
                 body: formData,
             });
@@ -231,6 +232,57 @@ function ScheduleTreatmentForm({ caseId, onFinished }: { caseId: string, onFinis
     );
 }
 
+function DeleteRecordDialog({ caseId, recordId, onFinished }: { caseId: string, recordId: number, onFinished: () => void }) {
+    const { apiFetch } = useApi();
+    const { toast } = useToast();
+    const [isDeleting, setIsDeleting] = React.useState(false);
+
+    async function handleDelete() {
+        setIsDeleting(true);
+        try {
+            const response = await apiFetch(`/api/patients/medical-cases/${caseId}/records/${recordId}/delete/`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to delete medical record.");
+            }
+
+            toast({ title: "Success", description: "Medical record deleted successfully." });
+            onFinished();
+        } catch (error) {
+            if (error instanceof Error && error.message === "Unauthorized") return;
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+            toast({ variant: "destructive", title: "Error", description: errorMessage });
+        } finally {
+            setIsDeleting(false);
+        }
+    }
+
+    return (
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive">
+                    <Trash2 className="h-4 w-4" />
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>This action cannot be undone. This will permanently delete this medical record.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
+                        {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Continue
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+}
+
 function CaseDetailPage() {
     const { id, caseId } = useParams();
     const router = useRouter();
@@ -350,14 +402,17 @@ function CaseDetailPage() {
                                                     <Badge className="mb-2">{record.record_type}</Badge>
                                                     <p className="text-sm">{record.note}</p>
                                                 </div>
-                                                {record.file && (
-                                                    <Button asChild variant="outline" size="sm">
-                                                        <a href={record.file} target="_blank" rel="noopener noreferrer">
-                                                            <Paperclip className="mr-2 h-4 w-4" />
-                                                            View Attachment
-                                                        </a>
-                                                    </Button>
-                                                )}
+                                                <div className="flex items-center gap-2">
+                                                    {record.file && (
+                                                        <Button asChild variant="outline" size="sm">
+                                                            <a href={record.file} target="_blank" rel="noopener noreferrer">
+                                                                <Paperclip className="mr-2 h-4 w-4" />
+                                                                View Attachment
+                                                            </a>
+                                                        </Button>
+                                                    )}
+                                                    <DeleteRecordDialog caseId={caseIdStr} recordId={record.id} onFinished={fetchData} />
+                                                </div>
                                             </div>
                                             <Separator className="my-3"/>
                                             <div className="flex items-center justify-between text-xs text-muted-foreground">
