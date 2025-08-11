@@ -65,11 +65,11 @@ const recordSchema = z.object({
 });
 
 const scheduleSchema = z.object({
-  treatment_name: z.string().min(1, "Treatment name is required."),
   description: z.string().min(1, "Description is required."),
   scheduled_date: z.date({ required_error: "A date is required." }),
-  status: z.string().min(1, "Status is required."),
+  hospital: z.string().min(1, "Hospital is required."),
 });
+
 
 function AddRecordForm({ caseId, onFinished }: { caseId: string, onFinished: () => void }) {
     const { apiFetch } = useApi();
@@ -160,14 +160,15 @@ function ScheduleTreatmentForm({ caseId, onFinished }: { caseId: string, onFinis
 
     const form = useForm<z.infer<typeof scheduleSchema>>({
         resolver: zodResolver(scheduleSchema),
-        defaultValues: { treatment_name: "", description: "", status: "SCHEDULED" },
+        defaultValues: { description: "", hospital: "" },
     });
 
     async function onSubmit(values: z.infer<typeof scheduleSchema>) {
         setIsLoading(true);
         const payload = {
-            ...values,
-            scheduled_date: format(values.scheduled_date, "yyyy-MM-dd'T'HH:mm:ss'Z'"),
+            description: values.description,
+            hospital: values.hospital,
+            scheduled_datetime: format(values.scheduled_date, "yyyy-MM-dd'T'HH:mm:ss'Z'"),
         }
         try {
             const response = await apiFetch(`/api/patients/medical-cases/${caseId}/treatment-schedules/create/`, {
@@ -194,8 +195,8 @@ function ScheduleTreatmentForm({ caseId, onFinished }: { caseId: string, onFinis
                     <DialogDescription>Schedule a new treatment for this medical case.</DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
-                    <FormField control={form.control} name="treatment_name" render={({ field }) => (
-                        <FormItem><FormLabel>Treatment Name</FormLabel><FormControl><Input placeholder="e.g., Physiotherapy Session" {...field} /></FormControl><FormMessage /></FormItem>
+                     <FormField control={form.control} name="hospital" render={({ field }) => (
+                        <FormItem><FormLabel>Hospital</FormLabel><FormControl><Input placeholder="e.g., General Hospital" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="description" render={({ field }) => (
                         <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Describe the treatment..." {...field} /></FormControl><FormMessage /></FormItem>
@@ -209,18 +210,6 @@ function ScheduleTreatmentForm({ caseId, onFinished }: { caseId: string, onFinis
                             </Button>
                         </FormControl>
                         </PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><CalendarComponent mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
-                    )} />
-                     <FormField control={form.control} name="status" render={({ field }) => (
-                        <FormItem><FormLabel>Status</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl><SelectTrigger><SelectValue placeholder="Select a status" /></SelectTrigger></FormControl>
-                                <SelectContent>
-                                    <SelectItem value="SCHEDULED">Scheduled</SelectItem>
-                                    <SelectItem value="COMPLETED">Completed</SelectItem>
-                                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        <FormMessage /></FormItem>
                     )} />
                 </div>
                 <DialogFooter>
@@ -601,5 +590,3 @@ function CaseDetailPage() {
 }
 
 export default CaseDetailPage;
-
-    
