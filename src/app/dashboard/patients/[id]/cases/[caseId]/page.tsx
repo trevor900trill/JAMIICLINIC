@@ -54,7 +54,7 @@ type CaseDetails = {
     created_by: string;
     case_date: string;
     created_at: string;
-    records?: MedicalRecord[];
+    medical_records?: MedicalRecord[];
     treatment_schedules?: TreatmentSchedule[];
 };
 
@@ -477,9 +477,9 @@ function CaseDetailPage() {
                             <CardDescription>All records and attachments for this case.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {caseDetails.records && caseDetails.records.length > 0 ? (
+                            {caseDetails.medical_records && caseDetails.medical_records.length > 0 ? (
                                 <div className="space-y-4">
-                                    {caseDetails.records.map(record => (
+                                    {caseDetails.medical_records.map(record => (
                                         <div key={record.id} className="border p-4 rounded-lg bg-background/50">
                                             <div className="flex justify-between items-start">
                                                 <div>
