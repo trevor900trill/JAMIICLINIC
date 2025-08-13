@@ -121,10 +121,10 @@ function AddRecordForm({ caseId, onFinished }: { caseId: string, onFinished: () 
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl><SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger></FormControl>
                                 <SelectContent>
-                                    <SelectItem value="NOTE">Note</SelectItem>
-                                    <SelectItem value="PRESCRIPTION">Prescription</SelectItem>
-                                    <SelectItem value="SCAN">Scan</SelectItem>
-                                    <SelectItem value="LAB_RESULT">Lab Result</SelectItem>
+                                    <SelectItem value="xray">X-Ray</SelectItem>
+                                    <SelectItem value="ct_scan">CT Scan</SelectItem>
+                                    <SelectItem value="surgery_note">Surgery Note</SelectItem>
+                                    <SelectItem value="general">General</SelectItem>
                                 </SelectContent>
                             </Select>
                         <FormMessage /></FormItem>
@@ -590,5 +590,3 @@ function CaseDetailPage() {
 }
 
 export default CaseDetailPage;
-
-    
