@@ -102,7 +102,7 @@ function CreateCaseForm({ onFinished, patientId, clinicId }: { onFinished: () =>
             records: values.initial_note ? [{ record_type: 'general', note: values.initial_note }] : [],
         };
         
-        if (user?.role === 'doctor') {
+        if (user?.role === 'doctor' || user?.role === 'staff') {
             if (!clinicId) {
                 toast({ variant: "destructive", title: "Error", description: "Clinic ID is missing."});
                 setIsLoading(false);
@@ -118,7 +118,8 @@ function CreateCaseForm({ onFinished, patientId, clinicId }: { onFinished: () =>
   
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.detail || "Failed to create medical case.");
+          const errorMessage = Object.values(errorData).flat().join(' ');
+          throw new Error(errorMessage || "Failed to create medical case.");
         }
   
         toast({ title: "Success", description: "Medical case created successfully." });
@@ -431,3 +432,5 @@ function MedicalCasesPage() {
 }
 
 export default MedicalCasesPage;
+
+    
