@@ -39,10 +39,14 @@ type MedicalRecord = {
 
 type TreatmentSchedule = {
     id: number;
-    hospital: string;
+    medical_case_id: number;
+    patient_name: string;
+    scheduled_datetime: string;
     description: string;
-    scheduled_date: string;
+    hospital: string;
     status: string;
+    scheduled_by: string;
+    created_at: string;
 }
 
 type CaseDetails = {
@@ -384,16 +388,26 @@ function CaseDetailPage() {
         if (!caseIdStr) return;
         setIsLoading(true);
         try {
-            const response = await apiFetch(`/api/patients/medical-cases/${caseIdStr}/`);
-            if (!response.ok) {
-                if (response.status === 404) {
+            const caseResponse = await apiFetch(`/api/patients/medical-cases/${caseIdStr}/`);
+            if (!caseResponse.ok) {
+                if (caseResponse.status === 404) {
                     toast({ variant: "destructive", title: "Error", description: "Medical case not found." });
+                    setCaseDetails(null);
                 } else {
                     throw new Error("Failed to fetch case details.");
                 }
             } else {
-                const data = await response.json();
-                setCaseDetails(data);
+                const caseData = await caseResponse.json();
+                
+                // Fetch treatments separately
+                const treatmentsResponse = await apiFetch(`/api/patients/medical-cases/${caseIdStr}/treatments/`);
+                if (treatmentsResponse.ok) {
+                    caseData.treatment_schedules = await treatmentsResponse.json();
+                } else {
+                    caseData.treatment_schedules = [];
+                }
+                
+                setCaseDetails(caseData);
             }
         } catch (error) {
             if (error instanceof Error && error.message === "Unauthorized") return;
@@ -556,7 +570,7 @@ function CaseDetailPage() {
                                              <Separator className="my-3"/>
                                             <div className="flex items-center text-xs text-muted-foreground">
                                                 <Calendar className="h-3 w-3 mr-1" />
-                                                <span>{new Date(schedule.scheduled_date).toLocaleDateString()}</span>
+                                                <span>{new Date(schedule.scheduled_datetime).toLocaleDateString()}</span>
                                             </div>
                                         </div>
                                     ))}
