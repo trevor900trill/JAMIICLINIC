@@ -194,7 +194,7 @@ function MedicalCasesPage() {
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuItem asChild>
-                                <Link href={`/dashboard/patients/${caseItem.id}/cases/${caseItem.id}`}>
+                                <Link href={`/dashboard/medical-cases/${caseItem.id}`}>
                                     <Eye className="mr-2 h-4 w-4" />
                                     View Details
                                 </Link>
@@ -298,5 +298,3 @@ function MedicalCasesPage() {
 }
 
 export default MedicalCasesPage;
-
-    

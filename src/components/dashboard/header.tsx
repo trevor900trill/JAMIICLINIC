@@ -41,12 +41,18 @@ export function Header() {
   const navItems = allNavItems.filter(item => item.roles.includes(user.role));
   
   let pageTitle = 'Dashboard';
+  const pathSegments = pathname.split('/').filter(Boolean);
+
   if (pathname.startsWith('/dashboard/patients/')) {
-      pageTitle = 'Patient Details';
-  } else if (pathname.startsWith('/dashboard/medical-cases')) {
-      pageTitle = 'Medical Cases';
+    pageTitle = 'Patient Details';
+  } else if (pathname.startsWith('/dashboard/medical-cases/')) {
+     if (pathSegments.length > 2) {
+       pageTitle = 'Case Details';
+     } else {
+       pageTitle = 'Medical Cases';
+     }
   } else {
-      pageTitle = navItems.find(item => pathname.startsWith(item.href))?.label ?? 'Dashboard'
+    pageTitle = navItems.find(item => pathname.startsWith(item.href))?.label ?? 'Dashboard';
   }
 
 
