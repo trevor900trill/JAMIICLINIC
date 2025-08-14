@@ -93,12 +93,43 @@ function CreateCaseForm({ onFinished }: { onFinished: () => void }) {
     
     React.useEffect(() => {
         async function fetchPatients() {
+            if (!user) return;
             setIsFetchingPatients(true);
+
+            let endpoint = '';
+            if (user.role === 'admin') {
+                endpoint = '/api/management/patients/';
+            } else if (user.role === 'doctor') {
+                endpoint = '/api/clinics/doctor/patients/';
+            } else if (user.role === 'staff') {
+                endpoint = '/api/clinics/staff/patients/';
+            }
+
+            if (!endpoint) {
+                setIsFetchingPatients(false);
+                return;
+            }
+            
             try {
-                const response = await apiFetch('/api/management/patients/');
+                const response = await apiFetch(endpoint);
                 if (!response.ok) throw new Error("Failed to fetch patients.");
-                const patientData = await response.json();
-                setPatients(patientData.results);
+                const data = await response.json();
+                
+                let patientList: Patient[] = [];
+                if (user.role === 'admin') {
+                    patientList = data.results;
+                } else {
+                    // For doctor and staff, the response is an array of clinics with nested patients
+                     patientList = data.flatMap((clinic: any) => 
+                        clinic.patients.map((p: Patient) => ({
+                            ...p,
+                            clinic_id: clinic.clinic_id,
+                            clinic_name: clinic.clinic_name,
+                        }))
+                    );
+                }
+                setPatients(patientList);
+
             } catch (error) {
                 if (error instanceof Error && error.message === "Unauthorized") return;
                 toast({ variant: "destructive", title: "Error", description: "Could not fetch patient list." });
@@ -107,7 +138,7 @@ function CreateCaseForm({ onFinished }: { onFinished: () => void }) {
             }
         }
         fetchPatients();
-    }, [apiFetch, toast]);
+    }, [apiFetch, toast, user]);
   
     async function onSubmit(values: z.infer<typeof medicalCaseSchema>) {
       setIsLoading(true);
@@ -480,5 +511,3 @@ function MedicalCasesPage() {
 }
 
 export default MedicalCasesPage;
-
-    
