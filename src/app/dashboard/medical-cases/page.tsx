@@ -144,14 +144,17 @@ function CreateCaseForm({ onFinished }: { onFinished: () => void }) {
       setIsLoading(true);
 
       try {
-        const payload: any = {
-            patient: values.patient_id,
-            title: values.title,
-            description: values.description,
-            case_date: format(values.case_date, "yyyy-MM-dd"),
-            is_active: true,
-            records: values.initial_note ? [{ record_type: 'general', note: values.initial_note }] : [],
-        };
+        const formData = new FormData();
+        formData.append('patient', values.patient_id.toString());
+        formData.append('title', values.title);
+        formData.append('description', values.description);
+        formData.append('case_date', format(values.case_date, "yyyy-MM-dd"));
+        formData.append('is_active', 'true');
+        
+        if (values.initial_note) {
+            formData.append('records[0].record_type', 'general');
+            formData.append('records[0].note', values.initial_note);
+        }
         
         if (user?.role === 'doctor' || user?.role === 'staff') {
             const clinicId = selectedClinic?.clinic_id;
@@ -160,12 +163,12 @@ function CreateCaseForm({ onFinished }: { onFinished: () => void }) {
                 setIsLoading(false);
                 return;
             }
-            payload.clinic_id = clinicId;
+            formData.append('clinic_id', clinicId.toString());
         }
   
         const response = await apiFetch('/api/patients/create/medical-case/', {
           method: 'POST',
-          body: JSON.stringify(payload),
+          body: formData,
         });
   
         if (!response.ok) {
