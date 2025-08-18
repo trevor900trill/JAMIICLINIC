@@ -32,7 +32,7 @@ type MedicalRecord = {
     id: number;
     record_type: string;
     note: string;
-    file: string | null;
+    file_url: string | null;
     created_by: string;
     created_at: string;
 };
@@ -500,9 +500,9 @@ function CaseDetailPage() {
                                                     <p className="text-sm">{record.note}</p>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    {record.file && (
+                                                    {record.file_url && (
                                                         <Button asChild variant="outline" size="sm">
-                                                            <a href={record.file} target="_blank" rel="noopener noreferrer">
+                                                            <a href={record.file_url} target="_blank" rel="noopener noreferrer">
                                                                 <Paperclip className="mr-2 h-4 w-4" />
                                                                 View Attachment
                                                             </a>
