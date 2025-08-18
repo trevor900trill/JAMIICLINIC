@@ -312,7 +312,7 @@ function MedicalCasesPage() {
     const [filteredCases, setFilteredCases] = React.useState<MedicalCase[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [sorting, setSorting] = React.useState<SortingState>([]);
-    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
     const [isFormOpen, setIsFormOpen] = React.useState(false);
 
     const fetchCases = React.useCallback(async () => {
@@ -352,6 +352,11 @@ function MedicalCasesPage() {
     }, [allCases, selectedClinic]);
 
     const columns: ColumnDef<MedicalCase>[] = [
+         {
+            accessorKey: "patient_name",
+            header: "Patient",
+            cell: ({ row }) => <div>{row.getValue("patient_name")}</div>,
+        },
         {
             accessorKey: "title",
             header: "Case Title",
@@ -361,11 +366,6 @@ function MedicalCasesPage() {
             accessorKey: "clinic_name",
             header: "Clinic",
             cell: ({ row }) => <div>{row.getValue("clinic_name")}</div>,
-        },
-         {
-            accessorKey: "patient_name",
-            header: "Patient",
-            cell: ({ row }) => <div>{row.getValue("patient_name")}</div>,
         },
         {
             accessorKey: "case_date",
