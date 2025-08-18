@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -21,6 +22,12 @@ const nextConfig: NextConfig = {
         hostname: 'jamii-clinic-production.up.railway.app',
         port: '',
         pathname: '/media/medical_files/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ik.imagekit.io',
+        port: '',
+        pathname: '/**',
       }
     ],
   },
