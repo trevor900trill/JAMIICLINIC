@@ -16,6 +16,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'http',
+        hostname: 'jamii-clinic-production.up.railway.app',
+        port: '',
+        pathname: '/media/medical_files/**',
+      }
     ],
   },
 };

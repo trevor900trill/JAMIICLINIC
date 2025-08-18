@@ -10,6 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
 import Link from "next/link";
+import Image from "next/image";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -371,6 +372,24 @@ function TreatmentScheduleActions({ caseId, schedule, onFinished }: { caseId: st
     );
 }
 
+function ImageAttachmentModal({ isOpen, onOpenChange, imageUrl }: { isOpen: boolean, onOpenChange: (open: boolean) => void, imageUrl: string | null }) {
+    if (!imageUrl) return null;
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-4xl">
+                <DialogHeader>
+                    <DialogTitle>Attachment Viewer</DialogTitle>
+                </DialogHeader>
+                <div className="relative h-[80vh] w-full">
+                    <Image src={imageUrl} alt="Medical Attachment" layout="fill" objectFit="contain" />
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+
 function CaseDetailPage() {
     const { id, caseId } = useParams();
     const router = useRouter();
@@ -380,7 +399,9 @@ function CaseDetailPage() {
     const [isLoading, setIsLoading] = React.useState(true);
     const [isRecordFormOpen, setIsRecordFormOpen] = React.useState(false);
     const [isScheduleFormOpen, setIsScheduleFormOpen] = React.useState(false);
-    
+    const [isImageModalOpen, setIsImageModalOpen] = React.useState(false);
+    const [selectedImageUrl, setSelectedImageUrl] = React.useState<string | null>(null);
+
     const patientId = Array.isArray(id) ? id[0] : id;
     const caseIdStr = Array.isArray(caseId) ? caseId[0] : caseId;
 
@@ -449,6 +470,7 @@ function CaseDetailPage() {
     
     return (
         <div className="space-y-6">
+            <ImageAttachmentModal isOpen={isImageModalOpen} onOpenChange={setIsImageModalOpen} imageUrl={selectedImageUrl} />
             <Card>
                 <CardHeader>
                     <div className="flex justify-between items-start">
@@ -501,12 +523,13 @@ function CaseDetailPage() {
                                                     <p className="text-sm">{record.note}</p>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    {record.file_url && (
-                                                        <Button asChild variant="outline" size="sm">
-                                                            <a href={record.file_url} target="_blank" rel="noopener noreferrer">
-                                                                <Paperclip className="mr-2 h-4 w-4" />
-                                                                View Attachment
-                                                            </a>
+                                                     {record.file_url && (
+                                                        <Button variant="outline" size="sm" onClick={() => {
+                                                            setSelectedImageUrl(record.file_url);
+                                                            setIsImageModalOpen(true);
+                                                        }}>
+                                                            <Paperclip className="mr-2 h-4 w-4" />
+                                                            View Attachment
                                                         </Button>
                                                     )}
                                                     <DeleteRecordDialog caseId={caseIdStr} recordId={record.id} onFinished={fetchData} />
